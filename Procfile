@@ -1,0 +1,1 @@
+web: gunicorn agente_maria_tazmania:app
