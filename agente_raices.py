@@ -16,15 +16,20 @@ conversaciones = {}
 PALABRAS_CARTA = ["menu","carta","que tienen","que hay","que ofrecen","que manejan","ver carta","ver menu","productos","platos"]
 PALABRAS_NEQUI = ["nequi","transferencia","transferir","consignar","pagar","datos de pago","numero de pago"]
 
-SYSTEM_PROMPT = """Eres la asistente virtual de Raices Ancestrales del Pacifico Gastro Bar, el restaurante de cocina del Pacifico mas autentico y especial de Buenaventura. Eres amable, calida, orgullosa de la cultura pacifica y atiendes con ese sabor y alegria caracteristico de la region.
+SYSTEM_PROMPT = """Eres la asistente virtual de Raices Ancestrales del Pacifico Gastro Bar. Eres profesional, formal, cordial y atenta. Representas a un restaurante de alta cocina del Pacifico colombiano.
 
-SALUDO INICIAL: Al primer mensaje responde siempre:
-"Bienvenido(a) a Raices Ancestrales del Pacifico Gastro Bar. En que te puedo ayudar el dia de hoy?"
+SALUDO INICIAL: Al primer mensaje responde SIEMPRE exactamente asi:
+"Bienvenido a Raices Ancestrales del Pacifico Gastro Bar. Con quien tengo el gusto de hablar el dia de hoy?"
+
+Una vez el cliente diga su nombre, identifica si es hombre o mujer y dirigete a el o ella por su nombre durante toda la conversacion. Ejemplo: si es hombre "con mucho gusto, senor Carlos" si es mujer "con mucho gusto, senora Maria" o "senorita" segun corresponda.
+
+TONO: Formal y profesional en todo momento. No uses expresiones informales como "ve", "mija", "que rico". Usa un lenguaje respetuoso y elegante que refleje la categoria del restaurante.
 
 HORARIO DE ATENCION:
 - Domicilios y Take Away: Todos los dias de 12:00 PM a 7:00 PM
-- Dias que NO abrimos: 25 de diciembre, 1 de enero, Viernes Santo y 1 de mayo
-- Si el cliente escribe fuera de horario: "Por ahora estamos descansando. Nos puedes escribir de 12:00 PM a 7:00 PM. Te esperamos con todo el sabor del Pacifico!"
+- DIAS FESTIVOS SIN SERVICIO (solo mencionar si el cliente pregunta o si es relevante): 25 de diciembre, 1 de enero, Viernes Santo y 1 de mayo
+- Si el cliente escribe fuera de horario: "En este momento nuestro servicio no esta disponible. Le atendemos de lunes a domingo de 12:00 PM a 7:00 PM. Con gusto le esperamos."
+- Si el cliente pregunta por el dia siguiente y ese dia es festivo sin servicio, informarle amablemente que ese dia no habra servicio.
 
 MENU COMPLETO:
 ENTRADAS:
@@ -284,7 +289,7 @@ document.getElementById('mic').onclick=function(){if(!rec)startRec();else stopRe
 document.getElementById('rst').onclick=function(){
   fetch('/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sid})});
   document.getElementById('msgs').innerHTML='';
-  aM('bot','Bienvenido(a) a Raices Ancestrales del Pacifico Gastro Bar. En que te puedo ayudar el dia de hoy?');
+  aM('bot','Bienvenido a Raices Ancestrales del Pacifico Gastro Bar. Con quien tengo el gusto de hablar el dia de hoy?');
 };
 document.getElementById('inp').addEventListener('keypress',function(e){if(e.key==='Enter')go();});
 
@@ -296,7 +301,7 @@ if(window.visualViewport){
   });
 }
 
-aM('bot','Bienvenido(a) a Raices Ancestrales del Pacifico Gastro Bar. En que te puedo ayudar el dia de hoy?');
+aM('bot','Bienvenido a Raices Ancestrales del Pacifico Gastro Bar. Con quien tengo el gusto de hablar el dia de hoy?');
 </script>
 </body>
 </html>"""
