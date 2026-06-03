@@ -365,7 +365,7 @@ def get_system_prompt():
     dia_num = now.weekday()
     dia_nombre = DIAS_SEMANA[dia_num]
     fecha_hoy = f"{dia_nombre} {now.strftime('%d/%m/%Y')}"
-    return SYSTEM_PROMPT_BASE.format(fecha_hoy=fecha_hoy)
+    return SYSTEM_PROMPT_BASE.replace("{fecha_hoy}", fecha_hoy)
 
 def call_claude(session_id, mensaje):
     if session_id not in conversaciones:
