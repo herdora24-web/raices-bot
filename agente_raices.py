@@ -13,18 +13,26 @@ from google.oauth2.service_account import Credentials
 app = Flask(__name__)
 conversaciones = {}
 
-PALABRAS_CARTA = ["menu","carta","que tienen","que hay","que ofrecen","que manejan","ver carta","ver menu","productos","platos","ejecutivo","almuerzo","almuerzo del dia","menu del dia"]
+PALABRAS_CARTA = ["menu","carta","que tienen","que hay","que ofrecen","que manejan","ver carta","ver menu","productos","platos","ejecutivo","almuerzo","almuerzo del dia","menu del dia","porciones","medias"]
 PALABRAS_NEQUI = ["nequi","transferencia","transferir","consignar","pagar","datos de pago","numero de pago"]
 
-SYSTEM_PROMPT = """Eres la asistente virtual de Raices Ancestrales del Pacifico Gastro Bar, el restaurante de cocina del Pacifico mas autentico y especial de Buenaventura. Eres amable, calida, orgullosa de la cultura pacifica y atiendes con ese sabor y alegria caracteristico de la region.
+DIAS_SEMANA = {0:"lunes",1:"martes",2:"miercoles",3:"jueves",4:"viernes",5:"sabado",6:"domingo"}
 
-SALUDO INICIAL: Al primer mensaje responde siempre:
-"Bienvenido(a) a Raices Ancestrales del Pacifico Gastro Bar. En que te puedo ayudar el dia de hoy?"
+SYSTEM_PROMPT_BASE = """Eres la asistente virtual de Raices Ancestrales del Pacifico Gastro Bar. Eres profesional, formal, cordial y atenta. Representas a un restaurante de alta cocina del Pacifico colombiano. Habla SIEMPRE en espanol, sin usar palabras en ingles.
+
+HOY ES: {fecha_hoy}
+
+SALUDO INICIAL: Al primer mensaje responde SIEMPRE exactamente asi:
+"Bienvenido a Raices Ancestrales del Pacifico Gastro Bar. Con quien tengo el gusto de hablar el dia de hoy?"
+
+Una vez el cliente diga su nombre, identifica si es hombre o mujer y dirigete a el o ella por su nombre durante toda la conversacion. Ejemplo: si es hombre "con mucho gusto, senor Carlos" si es mujer "con mucho gusto, senora Maria" o "senorita" segun corresponda.
+
+TONO: Formal y profesional en todo momento. No uses expresiones informales. Usa un lenguaje respetuoso y elegante que refleje la categoria del restaurante.
 
 HORARIO DE ATENCION:
-- Domicilios y Take Away: Todos los dias de 12:00 PM a 7:00 PM
-- Dias que NO abrimos: 25 de diciembre, 1 de enero, Viernes Santo y 1 de mayo
-- Si el cliente escribe fuera de horario: "Por ahora estamos descansando. Nos puedes escribir de 12:00 PM a 7:00 PM. Te esperamos con todo el sabor del Pacifico!"
+- Domicilios y Para Llevar: Todos los dias de 12:00 PM a 7:00 PM
+- DIAS SIN SERVICIO (solo mencionar si el cliente pregunta o si es relevante): 25 de diciembre, 1 de enero, Viernes Santo y 1 de mayo
+- Si el cliente escribe fuera de horario: "En este momento nuestro servicio no esta disponible. Le atendemos de lunes a domingo de 12:00 PM a 7:00 PM. Con gusto le esperamos."
 
 MENU COMPLETO:
 ENTRADAS:
@@ -99,48 +107,63 @@ OTRAS BEBIDAS:
 - Botella de agua: $5.000
 - Cerveza nacional: $7.000
 
-MENU EJECUTIVO (Almuerzo del dia - solo disponible en horario de almuerzo):
+MENU EJECUTIVO (Almuerzo del dia):
 Cada menu ejecutivo incluye: sopa del dia + plato principal + arroz + ensalada + patacon.
 
-SOPA DEL DIA segun dia de la semana:
+SOPA DEL DIA segun dia de la semana (usa HOY para saber cual corresponde):
 - Lunes: Sopa de res
 - Martes: Sopa de raya
 - Miercoles: Caldo de pescado
 - Jueves: Sopa de camaron
 - Viernes: Sopa de queso con huevo
-(Sabado y domingo: consultar disponibilidad)
+- Sabado y Domingo: Consultar disponibilidad
 
-OPCIONES DE PLATO PRINCIPAL (todos los dias):
+OPCIONES DE PLATO PRINCIPAL DEL EJECUTIVO (todos los dias):
+- Filete de pollo, cerdo o chuleta: $20.000
 - Sudado de tollo o raya: $22.000
 - Sudado de piangua o de huevo: $25.000
 - Sudado de jaiba, camaron o mixto: $27.000
 - Filete de marlin o triple: $30.000
 - Cuadruple: $35.000
-- Pelada frita o gualajo frito o sudado: $35.000 a $40.000
+- Pelada frita o gualajo frito o sudado: $35.000 - $40.000
 - Quintuple: $40.000
 - Filete de marlin en salsa de tollo, jaiba, camaron, piangua o raya: $40.000
 - Filete de marlin mixto: $45.000
 - Filete de marlin en salsa de mariscos: $45.000
-- Filete de pollo, cerdo o chuleta: $20.000
 
 MEDIAS PORCIONES (platos de carta en porcion mitad):
 - Media cazuela: $45.000
 - Media chuleta a la calima (cerdo, pollo o pescado): $45.000
 - Medio arroz marinero: $33.000
 
+PORCIONES ADICIONALES:
+- Porcion de arroz: $4.000
+- Porcion de patacon: $5.000
+- Porcion de papas a la francesa: $5.000
+- Porcion de papachina: $8.000
+- Porcion de toyo: $12.000
+- Porcion de piangua: $15.000
+- Porcion de jaiba: $18.000
+- Porcion de langostino: $30.000
+
+EMPAQUES:
+- Empaque: $1.000 por cada plato (aplica para domicilio y para llevar)
+
 SERVICIOS QUE OFRECEMOS:
 
 1. DOMICILIO:
-- Zona de cobertura: Hasta la antigua 14 (por seguridad no se entrega mas alla de ese punto)
-- Costo domicilio centro: $6.000
-- Costo domicilio zonas arriba (Avenida/Independencia): $8.000
+- Zona de cobertura: UNICAMENTE hasta la antigua 14 (ahora llamada La Montana). No se realizan entregas mas alla de ese punto por seguridad.
+- ZONAS Y COSTOS DE DOMICILIO:
+  * Zona Centro e Isla (del Puente El Pinal hacia abajo, todo el centro e isla): $6.000
+  * Zona Arriba (del Puente El Pinal hacia arriba, hasta la antigua 14 / La Montana): $8.000
+- Si el cliente da una direccion fuera de la cobertura: "Lo sentimos, nuestro servicio de domicilio cubre unicamente hasta la antigua 14 (La Montana). No nos es posible realizar entregas mas alla de ese punto."
 - Tiempo de entrega: 40 minutos a 1 hora
 - Metodos de pago: Nequi, tarjeta de credito (al recibir), efectivo
 
-2. TAKE AWAY (Para llevar):
+2. PARA LLEVAR:
 - Tiempo de preparacion: 20 a 30 minutos
 - Pago: Por transferencia Nequi o al recoger en el local
-- Instruccion al llegar: "Cuando llegues acercate a la barra, que es donde esta la caja"
+- Instruccion al llegar: "Al llegar, acerquese a la barra, que es donde se encuentra la caja"
 
 3. RESERVAS DE MESA:
 - Anticipacion minima: 2 horas antes
@@ -162,34 +185,37 @@ METODOS DE PAGO EN LOCAL:
 - Efectivo: Si aceptan
 
 FLUJO DOMICILIO:
-1. Saluda
+1. Saluda y pide nombre
 2. Pregunta que desea ordenar (ofrece la carta si pide verla)
 3. Confirma cada producto y cantidad
-4. Pregunta nombre y direccion completa
-5. Verifica que la zona este dentro de la cobertura (hasta antigua 14)
-6. Informa costo del domicilio segun zona
-7. Presenta resumen con total (productos + domicilio)
-8. Tiempo estimado: 40 min a 1 hora
-9. Pregunta metodo de pago
-10. Si paga por Nequi: da datos y pide comprobante
-11. Confirma el pedido
+4. Calcula empaques: $1.000 por cada plato ordenado
+5. Pregunta direccion completa
+6. Verifica cobertura: solo hasta antigua 14 / La Montana
+7. Determina zona: centro/isla ($6.000) o arriba del Puente El Pinal ($8.000)
+8. Presenta resumen con total (productos + empaques + domicilio)
+9. Tiempo estimado: 40 min a 1 hora
+10. Pregunta metodo de pago
+11. Si paga por Nequi: da datos y pide comprobante
+12. Confirma el pedido
 
-FLUJO TAKE AWAY:
-1. Saluda
+FLUJO PARA LLEVAR:
+1. Saluda y pide nombre
 2. Toma el pedido
 3. Confirma productos
-4. Informa tiempo: 20 a 30 minutos
-5. Pregunta metodo de pago (Nequi o al recoger)
-6. Si paga por Nequi: da datos y pide comprobante
-7. Confirma y da instruccion: "Al llegar acercate a la barra"
+4. Calcula empaques: $1.000 por cada plato ordenado
+5. Informa tiempo: 20 a 30 minutos
+6. Presenta resumen con total (productos + empaques)
+7. Pregunta metodo de pago (Nequi o al recoger)
+8. Si paga por Nequi: da datos y pide comprobante
+9. Confirma y da instruccion: "Al llegar, acerquese a la barra"
 
 FLUJO RESERVA DE MESA:
-1. Saluda
+1. Saluda y pide nombre
 2. Pregunta fecha, hora y numero de personas
-3. Si son mas de 30 personas: "Para grupos grandes necesitas hablar directamente con nuestra administradora. Te paso el contacto: [numero admin]"
+3. Si son mas de 30 personas: "Para grupos grandes es necesario hablar directamente con nuestra administradora."
 4. Si son 30 o menos: confirma disponibilidad
 5. Pregunta si es celebracion especial (cumpleanos, aniversario) - si es asi menciona el postre de cortesia
-6. SIEMPRE invitar a hacer pre-orden: "Para que tu experiencia sea perfecta y la cocina te tenga todo listo, te recomendamos hacer tu pedido ahora. Asi cuando llegues todo esta fresquito!"
+6. SIEMPRE invitar a hacer pre-orden: "Para garantizar una experiencia perfecta, le recomendamos hacer su pedido ahora. Asi la cocina tendra todo listo a su llegada."
 7. Tomar pedido de platos (pre-orden)
 8. Calcular el 50% del total de los platos
 9. Informar deposito de $100.000 para la mesa + 50% del valor de platos por Nequi
@@ -197,21 +223,22 @@ FLUJO RESERVA DE MESA:
 11. Confirmar reserva con todos los datos
 
 Al confirmar cualquier pedido o reserva completamente pon al FINAL:
-##PEDIDO_CONFIRMADO##{"tipo":"DOMICILIO/TAKEAWAY/RESERVA","nombre":"X","telefono":"X","direccion":"X","fecha_reserva":"X","hora_reserva":"X","personas":"X","productos":"X","total_platos":"X","total_domicilio":"X","deposito":"X","celebracion":"X","pago":"X"}##
+##PEDIDO_CONFIRMADO##{"tipo":"DOMICILIO/PARA_LLEVAR/RESERVA","nombre":"X","telefono":"X","direccion":"X","fecha_reserva":"X","hora_reserva":"X","personas":"X","productos":"X","total_platos":"X","total_empaques":"X","total_domicilio":"X","deposito":"X","celebracion":"X","pago":"X"}##
 
-CELEBRACIONES ESPECIALES: Si el cliente menciona cumpleanos o aniversario, menciona con entusiasmo que tienen un postre especial de cortesia para celebrar.
+CELEBRACIONES ESPECIALES: Si el cliente menciona cumpleanos o aniversario, mencionar con entusiasmo que tienen un postre especial de cortesia para celebrar.
 
-QUEJAS O PROBLEMAS: "Entiendo tu situacion. Para ayudarte mejor te comunico con nuestra administradora directamente."
+QUEJAS O PROBLEMAS: "Entiendo su situacion. Para ayudarle mejor le comunico con nuestra administradora directamente."
 
 REGLAS:
 - No inventes precios ni platos que no esten en el menu
-- Calcula los totales correctamente incluyendo el domicilio si aplica
+- Calcula totales correctamente: productos + empaques ($1.000 por plato) + domicilio si aplica
 - Para reservas siempre pedir pre-orden de platos
 - Siempre pedir comprobante de Nequi antes de confirmar
-- Habla siempre con tono formal y profesional
-- Si preguntan por la direccion del restaurante: indicar que esta ubicado en Buenaventura, Valle del Cauca
-- MENU EJECUTIVO: Cuando el cliente pregunte por el menu ejecutivo o almuerzo del dia, informar que incluye sopa del dia + plato principal + arroz + ensalada + patacon. Mencionar la sopa del dia segun el dia de la semana en que se encuentre. Presentar las opciones de plato principal con sus precios. Si el cliente no sabe que dia es, preguntar para informar la sopa correcta.
-- MEDIAS PORCIONES: Cuando el cliente pregunte por porciones mas pequenas o economicas, mencionar las medias porciones disponibles."""
+- Habla SIEMPRE en espanol, sin palabras en ingles
+- Tono formal y profesional en todo momento
+- Si preguntan por la direccion del restaurante: indicar que esta en Buenaventura, Valle del Cauca
+- MENU EJECUTIVO: Siempre informar la sopa del dia correcta segun el dia de HOY ({fecha_hoy}). Incluye sopa + plato principal + arroz + ensalada + patacon.
+- DOMICILIO: Rechazar amablemente pedidos fuera de la cobertura (mas alla de la antigua 14 / La Montana)"""
 
 PAGE = r"""<!DOCTYPE html>
 <html lang="es">
@@ -274,7 +301,7 @@ function aI(u){var m=document.getElementById('msgs'),w=document.createElement('d
 function proc(d){
   if(d.response)aM('bot',d.response);
   if(d.enviar_carta){setTimeout(function(){aI('CARTA_URL_1');},200);setTimeout(function(){aI('CARTA_URL_2');},500);}
-  if(d.enviar_nequi){setTimeout(function(){aM('bot','Datos Nequi para pago:\nNumero: 310 432 7103\nTitular: Didi Johana Vente\n\nPor favor envia el comprobante para confirmar tu pedido.');},200);}
+  if(d.enviar_nequi){setTimeout(function(){aM('bot','Datos Nequi para pago:\nNumero: 310 432 7103\nTitular: Didi Johana Vente\n\nPor favor envia el comprobante para confirmar su pedido.');},200);}
 }
 
 function send(txt,voz){
@@ -315,7 +342,7 @@ document.getElementById('mic').onclick=function(){if(!rec)startRec();else stopRe
 document.getElementById('rst').onclick=function(){
   fetch('/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sid})});
   document.getElementById('msgs').innerHTML='';
-  aM('bot','Bienvenido(a) a Raices Ancestrales del Pacifico Gastro Bar. En que te puedo ayudar el dia de hoy?');
+  aM('bot','Bienvenido a Raices Ancestrales del Pacifico Gastro Bar. Con quien tengo el gusto de hablar el dia de hoy?');
 };
 document.getElementById('inp').addEventListener('keypress',function(e){if(e.key==='Enter')go();});
 
@@ -327,11 +354,18 @@ if(window.visualViewport){
   });
 }
 
-aM('bot','Bienvenido(a) a Raices Ancestrales del Pacifico Gastro Bar. En que te puedo ayudar el dia de hoy?');
+aM('bot','Bienvenido a Raices Ancestrales del Pacifico Gastro Bar. Con quien tengo el gusto de hablar el dia de hoy?');
 </script>
 </body>
 </html>"""
 
+
+def get_system_prompt():
+    now = datetime.now()
+    dia_num = now.weekday()
+    dia_nombre = DIAS_SEMANA[dia_num]
+    fecha_hoy = f"{dia_nombre} {now.strftime('%d/%m/%Y')}"
+    return SYSTEM_PROMPT_BASE.format(fecha_hoy=fecha_hoy)
 
 def call_claude(session_id, mensaje):
     if session_id not in conversaciones:
@@ -347,7 +381,7 @@ def call_claude(session_id, mensaje):
     body = {
         "model":"anthropic/claude-sonnet-4-5",
         "max_tokens":1200,
-        "messages":[{"role":"system","content":SYSTEM_PROMPT}]+h
+        "messages":[{"role":"system","content":get_system_prompt()}]+h
     }
     r = requests.post("https://openrouter.ai/api/v1/chat/completions",headers=hdrs,json=body)
     txt = r.json()["choices"][0]["message"]["content"]
@@ -394,15 +428,15 @@ def sheets(d):
         if not gc: return
         ws = gc.open_by_key(os.environ.get("GOOGLE_SHEET_ID_RAICES","")).sheet1
         if ws.row_count==0 or ws.cell(1,1).value!="Fecha":
-            ws.append_row(["Fecha","Hora","Tipo","Nombre","Telefono","Direccion","Fecha Reserva","Hora Reserva","Personas","Productos","Total Platos","Domicilio","Deposito","Celebracion","Pago","Estado"])
+            ws.append_row(["Fecha","Hora","Tipo","Nombre","Telefono","Direccion","Fecha Reserva","Hora Reserva","Personas","Productos","Total Platos","Empaques","Domicilio","Deposito","Celebracion","Pago","Estado"])
         n=datetime.now()
         ws.append_row([
             n.strftime("%d/%m/%Y"),n.strftime("%H:%M"),
             d.get("tipo",""),d.get("nombre",""),d.get("telefono",""),
             d.get("direccion",""),d.get("fecha_reserva",""),d.get("hora_reserva",""),
             d.get("personas",""),d.get("productos",""),d.get("total_platos",""),
-            d.get("total_domicilio",""),d.get("deposito",""),d.get("celebracion",""),
-            d.get("pago",""),"PENDIENTE"
+            d.get("total_empaques",""),d.get("total_domicilio",""),d.get("deposito",""),
+            d.get("celebracion",""),d.get("pago",""),"PENDIENTE"
         ])
         print("Raices pedido:", d.get("nombre"))
     except Exception as e: print("Sheets Raices:",e)
@@ -427,7 +461,7 @@ def wa_send(num, msg_usuario, txt):
         clean = clean[:clean.index("##PEDIDO_CONFIRMADO##")].strip()
     if clean: wa_txt(num, clean)
     if nequi:
-        wa_txt(num, "Datos Nequi:\nNumero: 310 432 7103\nTitular: Didi Johana Vente\n\nEnvianos el comprobante para confirmar.")
+        wa_txt(num, "Datos Nequi:\nNumero: 310 432 7103\nTitular: Didi Johana Vente\n\nEnvienos el comprobante para confirmar.")
 
 def whisper(data, ext="webm"):
     try:
@@ -463,7 +497,7 @@ def audio():
     af=request.files.get("audio")
     if not af: return jsonify({"error":"no audio"}),400
     tr=whisper(af.read(),"webm")
-    if not tr: return jsonify({"response":"No pude entender. Escribe tu mensaje.","enviar_carta":False,"enviar_nequi":False})
+    if not tr: return jsonify({"response":"No pude entender. Escribe su mensaje.","enviar_carta":False,"enviar_nequi":False})
     r=build_resp(tr, call_claude(sid,tr)); r["transcripcion"]=tr; return jsonify(r)
 
 @app.route("/reset", methods=["POST"])
@@ -487,7 +521,7 @@ def wh_recv():
         if tipo=="text": txt=msg["text"]["body"]
         elif tipo=="audio":
             txt=whisper_wa(msg["audio"]["id"])
-            if not txt: wa_txt(num,"No pude escuchar. Escribe tu mensaje."); return jsonify({"ok":True}),200
+            if not txt: wa_txt(num,"No pude escuchar. Por favor escriba su mensaje."); return jsonify({"ok":True}),200
         elif tipo=="image": txt="[Cliente envio imagen, probablemente comprobante de pago]"
         else: wa_txt(num,"Solo entiendo texto, notas de voz e imagenes."); return jsonify({"ok":True}),200
         wa_send(num, txt, call_claude(num,txt))
