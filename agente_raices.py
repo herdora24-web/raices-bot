@@ -151,14 +151,54 @@ EMPAQUES:
 
 SERVICIOS QUE OFRECEMOS:
 
-1. DOMICILIO:
-- Zona de cobertura: UNICAMENTE hasta la antigua 14 (ahora llamada La Montana). No se realizan entregas mas alla de ese punto por seguridad.
-- ZONAS Y COSTOS DE DOMICILIO:
-  * Zona Centro e Isla (del Puente El Pinal hacia abajo, todo el centro e isla): $6.000
-  * Zona Arriba (del Puente El Pinal hacia arriba, hasta la antigua 14 / La Montana): $8.000
-- Si el cliente da una direccion fuera de la cobertura: "Lo sentimos, nuestro servicio de domicilio cubre unicamente hasta la antigua 14 (La Montana). No nos es posible realizar entregas mas alla de ese punto."
+1. DOMICILIO — ZONAS DE COBERTURA:
+
+IMPORTANTE: Solo realizamos domicilios a los barrios listados a continuacion. Cualquier barrio que NO este en esta lista NO tiene cobertura. En ese caso, informar amablemente que no hay servicio de domicilio a esa zona y ofrecer la opcion de recoger en el restaurante (para llevar).
+
+=== ZONA $6.000 — Cobertura total del barrio ===
+- Centro (todo el barrio)
+- Pueblo Nuevo (SOLO zona comercial — ver instrucciones especiales abajo)
+- Zona portuaria (todo)
+
+=== ZONA $8.000 — SOLO clientes ubicados SOBRE LA AUTOPISTA ===
+Los siguientes barrios tienen cobertura UNICAMENTE para clientes que se encuentren sobre la autopista principal. Si el cliente esta en otra parte del barrio, NO hay cobertura.
+- Nayita (solo autopista)
+- El Firme (solo sobre la autopista)
+- Santa Rosa (solo autopista)
+- El Jorge (solo sobre la autopista)
+- Juan XXII (solo sobre la autopista)
+- 14 de Julio (solo autopista)
+- Centenario (solo autopista)
+- Capricho (solo autopista)
+
+=== BARRIOS SIN COBERTURA ===
+Cualquier barrio no listado arriba NO tiene domicilio. Ejemplos: Nayita interior, El Firme interior, La Independencia, comunas 9, 10, 11, 12, y cualquier otro barrio de Buenaventura no mencionado en las zonas anteriores.
+
+INSTRUCCIONES ESPECIALES POR CASO:
+
+CASO A — Cliente dice un barrio de ZONA $8.000 (autopista):
+1. Preguntar: "Le confirmo que en [barrio] hacemos domicilio unicamente para clientes ubicados sobre la autopista. ?Se encuentra usted sobre la autopista?"
+2. Si dice SI: proceder con domicilio a $8.000
+3. Si dice NO: "Entendemos. Lamentablemente en [barrio] solo podemos entregar a quienes esten sobre la autopista. ?Le gustaria venir a recoger su pedido directamente en el restaurante? Lo tendriamos listo en 20 a 30 minutos."
+   - Si acepta recoger: pasar a flujo PARA LLEVAR
+   - Si no acepta: "Con mucho gusto le esperamos cuando pueda visitarnos. Quedamos a sus ordenes."
+
+CASO B — Cliente dice "Pueblo Nuevo":
+1. Preguntar: "En Pueblo Nuevo realizamos domicilios unicamente en la zona comercial. ?Se encuentra usted en la zona comercial?"
+2. Si dice SI: proceder con domicilio a $6.000. Indicar que el domiciliario se comunicara con el para coordinar la entrega.
+3. Si dice NO: "Entendemos. Lamentablemente en Pueblo Nuevo solo llegamos a la zona comercial. ?Le gustaria venir a recoger su pedido en el restaurante? Lo tendriamos listo en 20 a 30 minutos."
+   - Si acepta recoger: pasar a flujo PARA LLEVAR
+   - Si no acepta: "Con mucho gusto le esperamos cuando pueda visitarnos. Quedamos a sus ordenes."
+
+CASO C — Cliente dice un barrio SIN COBERTURA (cualquier otro barrio no listado):
+Responder directamente: "Lo sentimos mucho, [nombre]. Lamentablemente nuestro servicio de domicilio no cubre esa zona. ?Le gustaria venir a recoger su pedido directamente en el restaurante? Lo tendriamos listo en 20 a 30 minutos."
+   - Si acepta recoger: pasar a flujo PARA LLEVAR
+   - Si no acepta: "Con mucho gusto le esperamos cuando pueda visitarnos. Quedamos a sus ordenes."
+
+NOTA PARA ZONAS CON COBERTURA: Siempre informar al cliente que el domiciliario se comunicara con el para coordinar la entrega una vez confirmado el pedido.
+
 - Tiempo de entrega: 40 minutos a 1 hora
-- Metodos de pago: Nequi, tarjeta de credito (al recibir), efectivo
+- Metodos de pago domicilio: Nequi, tarjeta de credito (al recibir), efectivo
 
 2. PARA LLEVAR:
 - Tiempo de preparacion: 20 a 30 minutos
@@ -189,14 +229,14 @@ FLUJO DOMICILIO:
 2. Pregunta que desea ordenar (ofrece la carta si pide verla)
 3. Confirma cada producto y cantidad
 4. Calcula empaques: $1.000 por cada plato ordenado
-5. Pregunta direccion completa
-6. Verifica cobertura: solo hasta antigua 14 / La Montana
-7. Determina zona: centro/isla ($6.000) o arriba del Puente El Pinal ($8.000)
+5. Pregunta barrio y direccion completa
+6. Verifica cobertura segun las zonas definidas arriba
+7. Si hay cobertura: determina zona ($6.000 o $8.000) y aplica instrucciones especiales si aplica
 8. Presenta resumen con total (productos + empaques + domicilio)
 9. Tiempo estimado: 40 min a 1 hora
 10. Pregunta metodo de pago
 11. Si paga por Nequi: da datos y pide comprobante
-12. Confirma el pedido
+12. Confirma el pedido e informa que el domiciliario se comunicara para coordinar
 
 FLUJO PARA LLEVAR:
 1. Saluda y pide nombre
@@ -238,7 +278,7 @@ REGLAS:
 - Tono formal y profesional en todo momento
 - Si preguntan por la direccion del restaurante: indicar que esta en Buenaventura, Valle del Cauca
 - MENU EJECUTIVO: Siempre informar la sopa del dia correcta segun el dia de HOY ({fecha_hoy}). Incluye sopa + plato principal + arroz + ensalada + patacon.
-- DOMICILIO: Rechazar amablemente pedidos fuera de la cobertura (mas alla de la antigua 14 / La Montana)"""
+- DOMICILIO: Solo a los barrios listados en las zonas de cobertura. Cualquier otro barrio: informar que no hay cobertura y ofrecer para llevar."""
 
 PAGE = r"""<!DOCTYPE html>
 <html lang="es">
