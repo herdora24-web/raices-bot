@@ -346,7 +346,16 @@ function aI(u){var m=document.getElementById('msgs'),w=document.createElement('d
 
 function proc(d){
   if(d.response)aM('bot',d.response);
-  if(d.enviar_carta){setTimeout(function(){aI('https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_1.jpg');},200);setTimeout(function(){aI('https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_2.jpg');},500);}
+  if(d.enviar_carta){
+    setTimeout(function(){aI('https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_1.jpg');},200);
+    setTimeout(function(){aI('https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_2.jpg');},500);
+    setTimeout(function(){aM('bot','🍽️ MEDIAS PORCIONES (disponibles en carta)\n• Media cazuela: $45.000\n• Media chuleta a la calima (cerdo, pollo o pescado): $45.000\n• Medio arroz marinero: $33.000\n\n🍟 PORCIONES ADICIONALES\n• Arroz: $4.000\n• Patacón: $5.000\n• Papas a la francesa: $5.000\n• Papachina: $8.000\n• Toyo: $12.000\n• Piangua: $15.000\n• Jaiba: $18.000\n• Langostino: $30.000');},800);
+    var hoy=new Date().getDay();
+    if(hoy>=1&&hoy<=5){
+      var sopas={1:'Sopa de res',2:'Sopa de raya',3:'Caldo de pescado',4:'Sopa de camaron',5:'Sopa de queso con huevo'};
+      setTimeout(function(){aM('bot','🍲 MENU EJECUTIVO (Lunes a Viernes)\nSopa del dia: '+sopas[hoy]+'\nIncluye: sopa + plato principal + arroz + ensalada + patacon\n\nOpciones de plato principal:\n• Filete de pollo, cerdo o chuleta: $20.000\n• Sudado de tollo o raya: $22.000\n• Sudado de piangua o de huevo: $25.000\n• Sudado de jaiba, camaron o mixto: $27.000\n• Filete de marlin o triple: $30.000\n• Cuadruple: $35.000\n• Pelada frita o gualajo: $35.000-$40.000\n• Quintuple: $40.000\n• Filete de marlin en salsa: $40.000\n• Filete de marlin mixto: $45.000\n• Filete de marlin en salsa de mariscos: $45.000');},1100);
+    }
+  }
   if(d.enviar_nequi){setTimeout(function(){aM('bot','Datos Nequi para pago:\nNumero: 310 432 7103\nTitular: Didi Johana Vente\n\nPor favor envia el comprobante para confirmar su pedido.');},200);}
 }
 
@@ -508,8 +517,49 @@ def wa_send(num, msg_usuario, txt):
         clean = clean[:clean.index("##PEDIDO_CONFIRMADO##")].strip()
     if clean: wa_txt(num, clean)
     if carta:
+        from datetime import datetime
         wa_img(num, "https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_1.jpg", "Nuestra carta - Parte 1")
         wa_img(num, "https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_2.jpg", "Nuestra carta - Parte 2")
+        # Mensaje de medias porciones
+        msg_medias = (
+            "🍽️ *MEDIAS PORCIONES* (disponibles en carta)\n"
+            "• Media cazuela: $45.000\n"
+            "• Media chuleta a la calima (cerdo, pollo o pescado): $45.000\n"
+            "• Medio arroz marinero: $33.000\n\n"
+            "🍟 *PORCIONES ADICIONALES*\n"
+            "• Arroz: $4.000\n"
+            "• Patacón: $5.000\n"
+            "• Papas a la francesa: $5.000\n"
+            "• Papachina: $8.000\n"
+            "• Toyo: $12.000\n"
+            "• Piangua: $15.000\n"
+            "• Jaiba: $18.000\n"
+            "• Langostino: $30.000"
+        )
+        wa_txt(num, msg_medias)
+        # Menú ejecutivo solo lunes a viernes
+        dia_semana = datetime.now().weekday()  # 0=lunes, 6=domingo
+        if dia_semana <= 4:  # lunes a viernes
+            sopas = {0:"Sopa de res", 1:"Sopa de raya", 2:"Caldo de pescado", 3:"Sopa de camaron", 4:"Sopa de queso con huevo"}
+            sopa_hoy = sopas[dia_semana]
+            msg_ejecutivo = (
+                "🍲 *MENU EJECUTIVO* (Lunes a Viernes)\n"
+                f"Sopa del dia: {sopa_hoy}\n"
+                "Incluye: sopa + plato principal + arroz + ensalada + patacon\n\n"
+                "*Opciones de plato principal:*\n"
+                "• Filete de pollo, cerdo o chuleta: $20.000\n"
+                "• Sudado de tollo o raya: $22.000\n"
+                "• Sudado de piangua o de huevo: $25.000\n"
+                "• Sudado de jaiba, camaron o mixto: $27.000\n"
+                "• Filete de marlin o triple: $30.000\n"
+                "• Cuadruple: $35.000\n"
+                "• Pelada frita o gualajo frito o sudado: $35.000 - $40.000\n"
+                "• Quintuple: $40.000\n"
+                "• Filete de marlin en salsa (tollo, jaiba, camaron, piangua o raya): $40.000\n"
+                "• Filete de marlin mixto: $45.000\n"
+                "• Filete de marlin en salsa de mariscos: $45.000"
+            )
+            wa_txt(num, msg_ejecutivo)
     if nequi:
         wa_txt(num, "Datos Nequi:\nNumero: 310 432 7103\nTitular: Didi Johana Vente\n\nEnvienos el comprobante para confirmar.")
 
