@@ -237,7 +237,10 @@ FLUJO DOMICILIO:
 9. Tiempo estimado: 40 min a 1 hora
 10. Pregunta metodo de pago
 11. Si paga por Nequi: da datos y pide comprobante
-12. Confirma el pedido e informa que el domiciliario se comunicara para coordinar
+12. Pregunta el numero de contacto ASI: "Para coordinar la entrega, ?le podemos contactar a este mismo numero de WhatsApp o prefiere darnos otro numero?"
+    - Si dice que si a este mismo numero: usar el numero de WhatsApp como contacto
+    - Si da otro numero: registrar ese numero
+13. Confirma el pedido e informa que el domiciliario se comunicara para coordinar
 
 FLUJO PARA LLEVAR:
 1. Saluda y pide nombre
@@ -276,6 +279,7 @@ REGLAS:
 - Calcula totales correctamente: productos + empaques ($1.000 por plato) + domicilio si aplica
 - Para reservas siempre pedir pre-orden de platos
 - Siempre pedir comprobante de Nequi antes de confirmar
+- Si el cliente elige efectivo o tarjeta de credito: NO mencionar Nequi ni sus datos. Solo confirmar el metodo elegido.
 - Habla SIEMPRE en espanol, sin palabras en ingles
 - Tono formal y profesional en todo momento
 - Si preguntan por la direccion del restaurante: "Nos encontramos en la Calle 1 #5a-5456, barrio Centro, Buenaventura. Estamos diagonal a Salamandra, frente al Edificio Altos de la Bahia."
@@ -440,7 +444,7 @@ def call_claude(session_id, mensaje):
 def build_resp(msg, txt):
     m = msg.lower()
     carta  = any(p in m for p in PALABRAS_CARTA)
-    nequi  = any(p in m for p in PALABRAS_NEQUI) or "nequi" in txt.lower()
+    nequi  = any(p in m for p in PALABRAS_NEQUI)
     clean  = txt
     if "##PEDIDO_CONFIRMADO##" in clean:
         clean = clean[:clean.index("##PEDIDO_CONFIRMADO##")].strip()
@@ -497,7 +501,7 @@ def wa_img(num,url,cap=""):
 
 def wa_send(num, msg_usuario, txt):
     m = msg_usuario.lower()
-    nequi = any(p in m for p in PALABRAS_NEQUI) or "nequi" in txt.lower()
+    nequi = any(p in m for p in PALABRAS_NEQUI)
     clean = txt
     if "##PEDIDO_CONFIRMADO##" in clean:
         clean = clean[:clean.index("##PEDIDO_CONFIRMADO##")].strip()
