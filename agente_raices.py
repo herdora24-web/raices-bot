@@ -108,6 +108,8 @@ OTRAS BEBIDAS:
 - Cerveza nacional: $7.000
 
 MENU EJECUTIVO (Almuerzo del dia):
+IMPORTANTE: El menu ejecutivo SOLO se ofrece de LUNES A VIERNES. Sabado y domingo NO hay menu ejecutivo. Si el cliente pregunta por el menu ejecutivo, almuerzo del dia o ejecutivo en sabado o domingo, responder: "Lo sentimos, el menu ejecutivo solo lo ofrecemos de lunes a viernes. Hoy contamos unicamente con nuestra carta regular. Con gusto le comparto las opciones disponibles."
+
 Cada menu ejecutivo incluye: sopa del dia + plato principal + arroz + ensalada + patacon.
 
 SOPA DEL DIA segun dia de la semana (usa HOY para saber cual corresponde):
@@ -116,7 +118,6 @@ SOPA DEL DIA segun dia de la semana (usa HOY para saber cual corresponde):
 - Miercoles: Caldo de pescado
 - Jueves: Sopa de camaron
 - Viernes: Sopa de queso con huevo
-- Sabado y Domingo: Consultar disponibilidad
 
 OPCIONES DE PLATO PRINCIPAL DEL EJECUTIVO (todos los dias):
 - Filete de pollo, cerdo o chuleta: $20.000
@@ -277,7 +278,7 @@ REGLAS:
 - Habla SIEMPRE en espanol, sin palabras en ingles
 - Tono formal y profesional en todo momento
 - Si preguntan por la direccion del restaurante: indicar que esta en Buenaventura, Valle del Cauca
-- MENU EJECUTIVO: Siempre informar la sopa del dia correcta segun el dia de HOY ({fecha_hoy}). Incluye sopa + plato principal + arroz + ensalada + patacon.
+- MENU EJECUTIVO: Solo disponible de LUNES A VIERNES. Si hoy es sabado o domingo, NO ofrecer menu ejecutivo bajo ninguna circunstancia. Solo carta regular. De lunes a viernes, informar la sopa del dia correcta segun HOY ({fecha_hoy}).
 - DOMICILIO: Solo a los barrios listados en las zonas de cobertura. Cualquier otro barrio: informar que no hay cobertura y ofrecer para llevar."""
 
 PAGE = r"""<!DOCTYPE html>
