@@ -346,7 +346,7 @@ function aI(u){var m=document.getElementById('msgs'),w=document.createElement('d
 
 function proc(d){
   if(d.response)aM('bot',d.response);
-  if(d.enviar_carta){setTimeout(function(){aI('CARTA_URL_1');},200);setTimeout(function(){aI('CARTA_URL_2');},500);}
+  if(d.enviar_carta){setTimeout(function(){aI('https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_1.jpg');},200);setTimeout(function(){aI('https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_2.jpg');},500);}
   if(d.enviar_nequi){setTimeout(function(){aM('bot','Datos Nequi para pago:\nNumero: 310 432 7103\nTitular: Didi Johana Vente\n\nPor favor envia el comprobante para confirmar su pedido.');},200);}
 }
 
@@ -501,11 +501,15 @@ def wa_img(num,url,cap=""):
 
 def wa_send(num, msg_usuario, txt):
     m = msg_usuario.lower()
+    carta = any(p in m for p in PALABRAS_CARTA)
     nequi = any(p in m for p in PALABRAS_NEQUI)
     clean = txt
     if "##PEDIDO_CONFIRMADO##" in clean:
         clean = clean[:clean.index("##PEDIDO_CONFIRMADO##")].strip()
     if clean: wa_txt(num, clean)
+    if carta:
+        wa_img(num, "https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_1.jpg", "Nuestra carta - Parte 1")
+        wa_img(num, "https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_2.jpg", "Nuestra carta - Parte 2")
     if nequi:
         wa_txt(num, "Datos Nequi:\nNumero: 310 432 7103\nTitular: Didi Johana Vente\n\nEnvienos el comprobante para confirmar.")
 
