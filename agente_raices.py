@@ -6,7 +6,7 @@ Flask + OpenRouter + Google Sheets + WhatsApp + Web UI movil
 """
 import os, json, requests, tempfile
 from datetime import datetime
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify, render_template_string, send_from_directory
 import gspread
 from google.oauth2.service_account import Credentials
 
@@ -520,7 +520,6 @@ def wa_send(num, msg_usuario, txt):
         from datetime import datetime
         wa_img(num, "https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_1.jpg", "Nuestra carta - Parte 1")
         wa_img(num, "https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_2.jpg", "Nuestra carta - Parte 2")
-        # Mensaje de medias porciones
         msg_medias = (
             "🍽️ *MEDIAS PORCIONES* (disponibles en carta)\n"
             "• Media cazuela: $45.000\n"
@@ -537,9 +536,8 @@ def wa_send(num, msg_usuario, txt):
             "• Langostino: $30.000"
         )
         wa_txt(num, msg_medias)
-        # Menú ejecutivo solo lunes a viernes
-        dia_semana = datetime.now().weekday()  # 0=lunes, 6=domingo
-        if dia_semana <= 4:  # lunes a viernes
+        dia_semana = datetime.now().weekday()
+        if dia_semana <= 4:
             sopas = {0:"Sopa de res", 1:"Sopa de raya", 2:"Caldo de pescado", 3:"Sopa de camaron", 4:"Sopa de queso con huevo"}
             sopa_hoy = sopas[dia_semana]
             msg_ejecutivo = (
@@ -582,6 +580,10 @@ def whisper_wa(aid):
         return whisper(requests.get(u,headers=h).content,"ogg")
     except: return None
 
+
+@app.route("/privacy")
+def privacy():
+    return send_from_directory('.', 'privacy_policy_raices.html')
 
 @app.route("/")
 def index(): return render_template_string(PAGE)
