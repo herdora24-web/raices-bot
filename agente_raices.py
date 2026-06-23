@@ -8,10 +8,11 @@ import os, json, requests, tempfile
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from flask import Flask, request, jsonify, render_template_string, send_from_directory
-import gspread
-from google.oauth2.service_account import Credentials
+import firestore_db
+from dashboard import dashboard_bp
 
 app = Flask(__name__)
+app.register_blueprint(dashboard_bp)
 conversaciones = {}
 
 TZ_COLOMBIA = ZoneInfo("America/Bogota")
@@ -23,6 +24,7 @@ def ahora_co():
 PALABRAS_NEQUI = ["nequi","transferencia","transferir","consignar","pagar","datos de pago","numero de pago"]
 
 DIAS_SEMANA = {0:"lunes",1:"martes",2:"miercoles",3:"jueves",4:"viernes",5:"sabado",6:"domingo"}
+FRANJAS_LABELS = {k: v["label"] for k, v in firestore_db.FRANJAS.items()}
 
 SYSTEM_PROMPT_BASE = """Eres la asistente virtual de Raices Ancestrales del Pacifico Gastro Bar. Eres profesional, formal, cordial y atenta. Representas a un restaurante de alta cocina del Pacifico colombiano. Habla SIEMPRE en espanol, sin usar palabras en ingles.
 
@@ -279,17 +281,24 @@ FLUJO PARA LLEVAR:
 FLUJO RESERVA DE MESA:
 1. Saluda y pide nombre
 2. Pregunta fecha, hora y numero de personas
-3. Si son mas de 30 personas: "Para grupos grandes es necesario coordinar directamente con nuestra administradora. Puede contactarla al 310 432 7103."
-4. Si son 30 o menos: confirma disponibilidad
-5. Pregunta si es celebracion especial (cumpleanos, aniversario) - si es asi menciona el postre de cortesia
-6. SIEMPRE invitar a hacer pre-orden: "Para garantizar una experiencia perfecta, le recomendamos hacer su pedido ahora. Asi la cocina tendra todo listo a su llegada."
-7. Tomar pedido de platos (pre-orden), aclarando que el valor de estos platos se paga aparte, no junto con el deposito
-8. Informar el deposito FIJO de $50.000 para confirmar y sostener la reserva (no depende de cuantas personas sean ni del valor de los platos)
-9. Dar datos de Nequi y pedir comprobante del deposito de $50.000
-10. Confirmar reserva con todos los datos
+3. Si son mas de 30 personas: "Para grupos grandes es necesario coordinar directamente con nuestra administradora. Puede contactarla al 310 432 7103." (No continues el flujo de reserva normal, no consultes disponibilidad para grupos de mas de 30)
+4. Si son 30 o menos: ANTES de confirmar nada, debes verificar disponibilidad real. Para esto, una vez tengas fecha, hora y numero de personas con claridad, incluye en tu respuesta UNICAMENTE el siguiente marcador (sin texto adicional al cliente todavia, el sistema te dara el resultado y tu respondes despues con la informacion real):
+   ##CONSULTAR_DISPONIBILIDAD##{"fecha":"DD/MM/AAAA","hora":"HH:MM AM/PM","personas":"X"}##
+   - El campo "fecha" debe ir en formato DD/MM/AAAA (ej: "25/06/2026"). Si el cliente da una fecha relativa como "manana" o "el viernes", calcula la fecha exacta usando HOY ({fecha_hoy}) y conviertela a DD/MM/AAAA antes de poner el marcador.
+   - El campo "hora" debe ir en formato HH:MM AM/PM (ej: "7:00 PM", "1:30 PM"). Convierte expresiones como "la una de la tarde" a este formato exacto.
+   - El sistema te devolvera un mensaje indicando si hay disponibilidad, o si debes ofrecer otra franja horaria, o si no hay cupo en absoluto. Usa esa informacion para responder al cliente con naturalidad.
+5. Si hay disponibilidad: confirma al cliente y continua con normalidad.
+6. Si NO hay disponibilidad en el horario pedido pero SI en la otra franja del mismo dia (almuerzo o cena): ofrece amablemente esa alternativa. Si el cliente acepta, continua el flujo con la nueva hora. Si no acepta, ofrece coordinar con la administradora (310 432 7103) para otro dia.
+7. Si NO hay disponibilidad en ninguna franja: informa al cliente y dale el contacto de la administradora (310 432 7103).
+8. Pregunta si es celebracion especial (cumpleanos, aniversario) - si es asi menciona el postre de cortesia
+9. SIEMPRE invitar a hacer pre-orden: "Para garantizar una experiencia perfecta, le recomendamos hacer su pedido ahora. Asi la cocina tendra todo listo a su llegada."
+10. Tomar pedido de platos (pre-orden), aclarando que el valor de estos platos se paga aparte, no junto con el deposito
+11. Informar el deposito FIJO de $50.000 para confirmar y sostener la reserva (no depende de cuantas personas sean ni del valor de los platos)
+12. Dar datos de Nequi y pedir comprobante del deposito de $50.000
+13. Confirmar reserva con todos los datos, usando en "fecha_reserva" y "hora_reserva" del marcador de confirmacion EXACTAMENTE el mismo formato usado en la consulta de disponibilidad (DD/MM/AAAA y HH:MM AM/PM)
 
 Al confirmar cualquier pedido o reserva completamente pon al FINAL:
-##PEDIDO_CONFIRMADO##{"tipo":"DOMICILIO/PARA_LLEVAR/RESERVA","nombre":"X","telefono":"X","direccion":"X","fecha_reserva":"X","hora_reserva":"X","personas":"X","productos":"X","total_platos":"X","total_empaques":"X","total_domicilio":"X","deposito":"X","celebracion":"X","pago":"X"}##
+##PEDIDO_CONFIRMADO##{"tipo":"DOMICILIO/PARA_LLEVAR/RESERVA","nombre":"X","telefono":"X","direccion":"X","fecha_reserva":"DD/MM/AAAA","hora_reserva":"HH:MM AM/PM","personas":"X","productos":"X","total_platos":"X","total_empaques":"X","total_domicilio":"X","deposito":"X","celebracion":"X","pago":"X"}##
 
 CELEBRACIONES ESPECIALES: Si el cliente menciona cumpleanos o aniversario, mencionar con entusiasmo que tienen un postre especial de cortesia para celebrar.
 
@@ -448,7 +457,7 @@ def get_system_prompt():
 def limpiar_marcadores(txt):
     """Quita cualquier marcador tecnico (##NOMBRE##{...}##) del texto antes de mostrarlo al cliente."""
     clean = txt
-    for marcador in ("##PEDIDO_CONFIRMADO##", "##ENVIAR_IMAGENES##"):
+    for marcador in ("##PEDIDO_CONFIRMADO##", "##ENVIAR_IMAGENES##", "##CONSULTAR_DISPONIBILIDAD##"):
         while marcador in clean:
             i = clean.index(marcador)
             try:
@@ -459,10 +468,23 @@ def limpiar_marcadores(txt):
                 break
     return clean
 
-def call_claude(session_id, mensaje):
-    if session_id not in conversaciones:
-        conversaciones[session_id] = []
-    conversaciones[session_id].append({"role":"user","content":mensaje})
+def extraer_consulta_disponibilidad(txt):
+    """Lee el marcador ##CONSULTAR_DISPONIBILIDAD##{...}## si esta presente."""
+    if "##CONSULTAR_DISPONIBILIDAD##" in txt:
+        try:
+            i = txt.index("##CONSULTAR_DISPONIBILIDAD##")+len("##CONSULTAR_DISPONIBILIDAD##")
+            j = txt.index("##",i)
+            data = json.loads(txt[i:j])
+            return {
+                "fecha": data.get("fecha",""),
+                "hora": data.get("hora",""),
+                "personas": data.get("personas","1"),
+            }
+        except: pass
+    return None
+
+def _llamar_openrouter(session_id):
+    """Llama a OpenRouter con el historial actual de la sesion. No modifica el historial."""
     h = conversaciones[session_id][-20:]
     hdrs = {
         "Authorization":"Bearer "+os.environ.get("OPENROUTER_API_KEY",""),
@@ -476,14 +498,61 @@ def call_claude(session_id, mensaje):
         "messages":[{"role":"system","content":get_system_prompt()}]+h
     }
     r = requests.post("https://openrouter.ai/api/v1/chat/completions",headers=hdrs,json=body)
-    txt = r.json()["choices"][0]["message"]["content"]
+    return r.json()["choices"][0]["message"]["content"]
+
+def call_claude(session_id, mensaje):
+    if session_id not in conversaciones:
+        conversaciones[session_id] = []
+    conversaciones[session_id].append({"role":"user","content":mensaje})
+
+    txt = _llamar_openrouter(session_id)
+
+    # Si Claude pidio consultar disponibilidad, resolvemos la consulta y le devolvemos
+    # el resultado como contexto, para que de la respuesta final al cliente.
+    consulta = extraer_consulta_disponibilidad(txt)
+    if consulta:
+        resultado = firestore_db.consultar_disponibilidad(
+            consulta["fecha"], consulta["hora"], consulta["personas"]
+        )
+        contexto = _formatear_resultado_disponibilidad(resultado)
+        # Guardamos la respuesta intermedia de Claude (limpia, sin el marcador) en el historial,
+        # solo si tenia texto visible ademas del marcador; si no, evitamos un mensaje vacio.
+        intermedio_clean = limpiar_marcadores(txt)
+        if intermedio_clean:
+            conversaciones[session_id].append({"role":"assistant","content":intermedio_clean})
+        conversaciones[session_id].append({"role":"user","content":contexto})
+        txt = _llamar_openrouter(session_id)
+
     clean = limpiar_marcadores(txt)
     conversaciones[session_id].append({"role":"assistant","content":clean})
+
     pedido = extraer_pedido(txt)
     if pedido:
         pedido["telefono"] = session_id
-        sheets(pedido)
+        firestore_db.guardar_pedido(pedido, ahora_co())
+
     return txt
+
+def _formatear_resultado_disponibilidad(resultado):
+    """Convierte el resultado de consultar_disponibilidad en un mensaje de contexto
+    para que Claude lo use al responder al cliente (este texto nunca lo ve el cliente directamente)."""
+    if not resultado["ok"]:
+        return ("[SISTEMA] No se pudo interpretar la fecha u hora indicada para verificar disponibilidad. "
+                "Pide al cliente que confirme la fecha (dd/mm/aaaa) y la hora exacta de la reserva.")
+    if resultado["disponible"]:
+        return (f"[SISTEMA] Hay disponibilidad para la reserva solicitada "
+                f"(franja: {resultado['franja']}, cupo restante: {resultado['cupo_restante']} personas). "
+                f"Continua el flujo de reserva con normalidad.")
+    if resultado["alternativa"]:
+        franja_alt = FRANJAS_LABELS.get(resultado["alternativa"], resultado["alternativa"])
+        return (f"[SISTEMA] La franja solicitada ({resultado['franja']}) ya no tiene cupo suficiente "
+                f"para esa cantidad de personas. SI hay cupo disponible en la otra franja del mismo dia: {franja_alt}. "
+                f"Informa al cliente amablemente que el horario solicitado ya esta lleno, y ofrece la franja alternativa "
+                f"como opcion. No insistas en el horario original.")
+    return (f"[SISTEMA] La franja solicitada ({resultado['franja']}) ya no tiene cupo, y la otra franja del mismo dia "
+            f"tampoco tiene espacio suficiente. Informa al cliente que no hay disponibilidad para esa fecha con esa "
+            f"cantidad de personas, y dale el contacto de la administradora (310 432 7103) para que coordine "
+            f"alternativas (otro dia, dividir el grupo, etc).")
 
 def build_resp(msg, txt):
     clean = limpiar_marcadores(txt)
@@ -520,34 +589,6 @@ def extraer_imagenes(txt):
     return {"carta": False, "ejecutivo": False}
 
 
-
-def gclient():
-    j = os.environ.get("GOOGLE_CREDENTIALS_JSON")
-    if not j: return None
-    try:
-        sc = ["https://www.googleapis.com/auth/spreadsheets","https://www.googleapis.com/auth/drive"]
-        c = Credentials.from_service_account_info(json.loads(j),scopes=sc)
-        return gspread.authorize(c)
-    except: return None
-
-def sheets(d):
-    try:
-        gc = gclient()
-        if not gc: return
-        ws = gc.open_by_key(os.environ.get("GOOGLE_SHEET_ID_RAICES","")).sheet1
-        if ws.row_count==0 or ws.cell(1,1).value!="Fecha":
-            ws.append_row(["Fecha","Hora","Tipo","Nombre","Telefono","Direccion","Fecha Reserva","Hora Reserva","Personas","Productos","Total Platos","Empaques","Domicilio","Deposito","Celebracion","Pago","Estado"])
-        n=ahora_co()
-        ws.append_row([
-            n.strftime("%d/%m/%Y"),n.strftime("%H:%M"),
-            d.get("tipo",""),d.get("nombre",""),d.get("telefono",""),
-            d.get("direccion",""),d.get("fecha_reserva",""),d.get("hora_reserva",""),
-            d.get("personas",""),d.get("productos",""),d.get("total_platos",""),
-            d.get("total_empaques",""),d.get("total_domicilio",""),d.get("deposito",""),
-            d.get("celebracion",""),d.get("pago",""),"PENDIENTE"
-        ])
-        print("Raices pedido:", d.get("nombre"))
-    except Exception as e: print("Sheets Raices:",e)
 
 def wa_txt(num,msg):
     t=os.environ.get("WHATSAPP_TOKEN"); p=os.environ.get("PHONE_NUMBER_ID")
