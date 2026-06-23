@@ -6,12 +6,19 @@ Flask + OpenRouter + Google Sheets + WhatsApp + Web UI movil
 """
 import os, json, requests, tempfile
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from flask import Flask, request, jsonify, render_template_string, send_from_directory
 import gspread
 from google.oauth2.service_account import Credentials
 
 app = Flask(__name__)
 conversaciones = {}
+
+TZ_COLOMBIA = ZoneInfo("America/Bogota")
+
+def ahora_co():
+    """Fecha/hora real de Colombia (UTC-5), sin importar la zona horaria del servidor (Railway corre en UTC)."""
+    return datetime.now(TZ_COLOMBIA)
 
 PALABRAS_CARTA = ["menu","carta","que tienen","que hay","que ofrecen","que manejan","ver carta","ver menu","productos","platos","ejecutivo","almuerzo","almuerzo del dia","menu del dia","porciones","medias"]
 PALABRAS_NEQUI = ["nequi","transferencia","transferir","consignar","pagar","datos de pago","numero de pago"]
@@ -350,9 +357,9 @@ function proc(d){
   if(d.enviar_carta){
     setTimeout(function(){aI('https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_1.jpg');},200);
     setTimeout(function(){aI('https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_2.jpg');},500);
-    var hoy=new Date().getDay();
+    var diaSemana=d.dia_semana; // 0=lunes ... 6=domingo, calculado en el servidor con hora Colombia
     var delayFinal=800;
-    if(hoy>=1&&hoy<=5){
+    if(diaSemana<=4){
       setTimeout(function(){aI('https://raw.githubusercontent.com/herdora24-web/raices-bot/main/menu_ejecutivo.jpg');},800);
       delayFinal=1100;
     }
@@ -418,7 +425,7 @@ aM('bot','Bienvenido a Raices Ancestrales del Pacifico Gastro Bar. Con quien ten
 
 
 def get_system_prompt():
-    now = datetime.now()
+    now = ahora_co()
     dia_num = now.weekday()
     dia_nombre = DIAS_SEMANA[dia_num]
     fecha_hoy = f"{dia_nombre} {now.strftime('%d/%m/%Y')}"
@@ -459,7 +466,8 @@ def build_resp(msg, txt):
     clean  = txt
     if "##PEDIDO_CONFIRMADO##" in clean:
         clean = clean[:clean.index("##PEDIDO_CONFIRMADO##")].strip()
-    return {"response":clean, "enviar_carta":carta, "enviar_nequi":nequi}
+    dia_semana = ahora_co().weekday()  # 0=lunes ... 6=domingo, segun hora Colombia
+    return {"response":clean, "enviar_carta":carta, "enviar_nequi":nequi, "dia_semana":dia_semana}
 
 def extraer_pedido(txt):
     if "##PEDIDO_CONFIRMADO##" in txt:
@@ -486,7 +494,7 @@ def sheets(d):
         ws = gc.open_by_key(os.environ.get("GOOGLE_SHEET_ID_RAICES","")).sheet1
         if ws.row_count==0 or ws.cell(1,1).value!="Fecha":
             ws.append_row(["Fecha","Hora","Tipo","Nombre","Telefono","Direccion","Fecha Reserva","Hora Reserva","Personas","Productos","Total Platos","Empaques","Domicilio","Deposito","Celebracion","Pago","Estado"])
-        n=datetime.now()
+        n=ahora_co()
         ws.append_row([
             n.strftime("%d/%m/%Y"),n.strftime("%H:%M"),
             d.get("tipo",""),d.get("nombre",""),d.get("telefono",""),
@@ -519,10 +527,9 @@ def wa_send(num, msg_usuario, txt):
         clean = clean[:clean.index("##PEDIDO_CONFIRMADO##")].strip()
     if clean: wa_txt(num, clean)
     if carta:
-        from datetime import datetime
         wa_img(num, "https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_1.jpg", "Nuestra carta - Parte 1")
         wa_img(num, "https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_2.jpg", "Nuestra carta - Parte 2")
-        dia_semana = datetime.now().weekday()
+        dia_semana = ahora_co().weekday()
         if dia_semana <= 4:
             wa_img(num, "https://raw.githubusercontent.com/herdora24-web/raices-bot/main/menu_ejecutivo.jpg", "Menu ejecutivo del dia")
         msg_medias = (
