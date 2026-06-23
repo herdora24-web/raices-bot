@@ -110,7 +110,7 @@ OTRAS BEBIDAS:
 MENU EJECUTIVO (Almuerzo del dia):
 IMPORTANTE: El menu ejecutivo SOLO se ofrece de LUNES A VIERNES. Sabado y domingo NO hay menu ejecutivo. Si el cliente pregunta por el menu ejecutivo, almuerzo del dia o ejecutivo en sabado o domingo, responder: "Lo sentimos, el menu ejecutivo solo lo ofrecemos de lunes a viernes. Hoy contamos unicamente con nuestra carta regular. Con gusto le comparto las opciones disponibles."
 
-Cada menu ejecutivo incluye: sopa del dia + plato principal + arroz + ensalada + patacon.
+Todos los platos del menu ejecutivo estan acompanados de: sopa del dia + arroz + ensalada + patacon + sirope de la casa SIN COSTO ADICIONAL. El sirope va siempre incluido con el almuerzo, no es un adicional que se cobre ni que se ofrezca por separado: nunca lo presentes como opcional ni le asignes precio.
 
 SOPA DEL DIA segun dia de la semana (usa HOY para saber cual corresponde):
 - Lunes: Sopa de res
@@ -119,18 +119,19 @@ SOPA DEL DIA segun dia de la semana (usa HOY para saber cual corresponde):
 - Jueves: Sopa de camaron
 - Viernes: Sopa de queso con huevo
 
-OPCIONES DE PLATO PRINCIPAL DEL EJECUTIVO (todos los dias):
-- Filete de pollo, cerdo o chuleta: $20.000
-- Sudado de tollo o raya: $22.000
-- Sudado de piangua o de huevo: $25.000
-- Sudado de jaiba, camaron o mixto: $27.000
-- Filete de marlin o triple: $30.000
-- Cuadruple: $35.000
-- Pelada frita o gualajo frito o sudado: $35.000 - $40.000
-- Quintuple: $40.000
-- Filete de marlin en salsa de tollo, jaiba, camaron, piangua o raya: $40.000
-- Filete de marlin mixto: $45.000
-- Filete de marlin en salsa de mariscos: $45.000
+OPCIONES DE PLATO PRINCIPAL DEL EJECUTIVO (todos los dias, precio incluye sopa + arroz + ensalada + patacon + sirope):
+- Toyo: $27.000
+- Raya: $27.000
+- Piangua: $30.000
+- Jaiba: $30.000
+- Camaron sudado: $30.000
+- Triple (mezcla de mariscos seleccionados): $37.000
+- Mixto (combinacion de mariscos y pescado): $30.000
+- Filete de marlin: $35.000
+- Pescado frito o sudado: $40.000
+- Huevo de pescado: $30.000
+
+Cuando el cliente pida ver el menu ejecutivo o el menu del dia (en dias lunes a viernes), se le debe enviar la imagen del menu ejecutivo ademas de la informacion en texto.
 
 MEDIAS PORCIONES (platos de carta en porcion mitad):
 - Media cazuela: $45.000
@@ -211,9 +212,8 @@ NOTA PARA ZONAS CON COBERTURA: Siempre informar al cliente que el domiciliario s
 - Maximo sin administrador: 30 personas (mas de 30 personas requiere hablar con administrador)
 - Tolerancia: Guardamos la mesa hasta 30 minutos despues de la hora reservada
 - Celebraciones especiales (cumpleanos, aniversarios): Se ofrece un postre especial de cortesia
-- Deposito para reserva: $100.000 para confirmar y sostener la reserva
-- Se PREFIERE que el cliente pida los platos al momento de reservar (pre-orden)
-- El 50% del valor de los platos se paga por adelantado para garantizar la reserva
+- Deposito para reserva: $50.000 FIJO por reserva, sin importar el numero de personas ni el valor de los platos pre-ordenados. Este deposito es unicamente para confirmar y sostener la reserva, NO se calcula como porcentaje del pedido.
+- Se PREFIERE que el cliente pida los platos al momento de reservar (pre-orden), pero el valor de esos platos se paga aparte (en el restaurante, al momento de consumir), NO se suma ni se mezcla con el deposito de la reserva.
 - El pedido estara listo 20 minutos despues de la hora de la reserva
 
 DATOS DE PAGO NEQUI:
@@ -260,11 +260,10 @@ FLUJO RESERVA DE MESA:
 4. Si son 30 o menos: confirma disponibilidad
 5. Pregunta si es celebracion especial (cumpleanos, aniversario) - si es asi menciona el postre de cortesia
 6. SIEMPRE invitar a hacer pre-orden: "Para garantizar una experiencia perfecta, le recomendamos hacer su pedido ahora. Asi la cocina tendra todo listo a su llegada."
-7. Tomar pedido de platos (pre-orden)
-8. Calcular el 50% del total de los platos
-9. Informar deposito de $100.000 para la mesa + 50% del valor de platos por Nequi
-10. Dar datos de Nequi y pedir comprobante
-11. Confirmar reserva con todos los datos
+7. Tomar pedido de platos (pre-orden), aclarando que el valor de estos platos se paga aparte, no junto con el deposito
+8. Informar el deposito FIJO de $50.000 para confirmar y sostener la reserva (no depende de cuantas personas sean ni del valor de los platos)
+9. Dar datos de Nequi y pedir comprobante del deposito de $50.000
+10. Confirmar reserva con todos los datos
 
 Al confirmar cualquier pedido o reserva completamente pon al FINAL:
 ##PEDIDO_CONFIRMADO##{"tipo":"DOMICILIO/PARA_LLEVAR/RESERVA","nombre":"X","telefono":"X","direccion":"X","fecha_reserva":"X","hora_reserva":"X","personas":"X","productos":"X","total_platos":"X","total_empaques":"X","total_domicilio":"X","deposito":"X","celebracion":"X","pago":"X"}##
@@ -277,13 +276,13 @@ GRUPOS GRANDES (mas de 30 personas): "Para reservas de grupos grandes es necesar
 REGLAS:
 - No inventes precios ni platos que no esten en el menu
 - Calcula totales correctamente: productos + empaques ($1.000 por plato) + domicilio si aplica
-- Para reservas siempre pedir pre-orden de platos
+- Para reservas siempre pedir pre-orden de platos, pero el deposito de reserva SIEMPRE es $50.000 fijo, nunca se calcula como porcentaje del valor de los platos ni se suma a un costo de mesa
 - Siempre pedir comprobante de Nequi antes de confirmar
 - Si el cliente elige efectivo o tarjeta de credito: NO mencionar Nequi ni sus datos. Solo confirmar el metodo elegido.
 - Habla SIEMPRE en espanol, sin palabras en ingles
 - Tono formal y profesional en todo momento
 - Si preguntan por la direccion del restaurante: "Nos encontramos en la Calle 1 #5a-5456, barrio Centro, Buenaventura. Estamos diagonal a Salamandra, frente al Edificio Altos de la Bahia."
-- MENU EJECUTIVO: Solo disponible de LUNES A VIERNES. Si hoy es sabado o domingo, NO ofrecer menu ejecutivo bajo ninguna circunstancia. Solo carta regular. De lunes a viernes, informar la sopa del dia correcta segun HOY ({fecha_hoy}).
+- MENU EJECUTIVO: Solo disponible de LUNES A VIERNES. Si hoy es sabado o domingo, NO ofrecer menu ejecutivo bajo ninguna circunstancia. Solo carta regular. De lunes a viernes, informar la sopa del dia correcta segun HOY ({fecha_hoy}). El sirope de la casa SIEMPRE va incluido sin costo con el menu ejecutivo, nunca se cobra ni se ofrece como opcional.
 - DOMICILIO: Solo a los barrios listados en las zonas de cobertura. Cualquier otro barrio: informar que no hay cobertura y ofrecer para llevar."""
 
 PAGE = r"""<!DOCTYPE html>
@@ -352,8 +351,9 @@ function proc(d){
     setTimeout(function(){aM('bot','🍽️ MEDIAS PORCIONES (disponibles en carta)\n• Media cazuela: $45.000\n• Media chuleta a la calima (cerdo, pollo o pescado): $45.000\n• Medio arroz marinero: $33.000\n\n🍟 PORCIONES ADICIONALES\n• Arroz: $4.000\n• Patacón: $5.000\n• Papas a la francesa: $5.000\n• Papachina: $8.000\n• Toyo: $12.000\n• Piangua: $15.000\n• Jaiba: $18.000\n• Langostino: $30.000');},800);
     var hoy=new Date().getDay();
     if(hoy>=1&&hoy<=5){
+      setTimeout(function(){aI('https://raw.githubusercontent.com/herdora24-web/raices-bot/main/menu_ejecutivo.jpg');},1100);
       var sopas={1:'Sopa de res',2:'Sopa de raya',3:'Caldo de pescado',4:'Sopa de camaron',5:'Sopa de queso con huevo'};
-      setTimeout(function(){aM('bot','🍲 MENU EJECUTIVO (Lunes a Viernes)\nSopa del dia: '+sopas[hoy]+'\nIncluye: sopa + plato principal + arroz + ensalada + patacon\n\nOpciones de plato principal:\n• Filete de pollo, cerdo o chuleta: $20.000\n• Sudado de tollo o raya: $22.000\n• Sudado de piangua o de huevo: $25.000\n• Sudado de jaiba, camaron o mixto: $27.000\n• Filete de marlin o triple: $30.000\n• Cuadruple: $35.000\n• Pelada frita o gualajo: $35.000-$40.000\n• Quintuple: $40.000\n• Filete de marlin en salsa: $40.000\n• Filete de marlin mixto: $45.000\n• Filete de marlin en salsa de mariscos: $45.000');},1100);
+      setTimeout(function(){aM('bot','🍲 MENU EJECUTIVO (Lunes a Viernes)\nSopa del dia: '+sopas[hoy]+'\nIncluye: sopa + plato principal + arroz + ensalada + patacon + sirope de la casa, SIN costo adicional\n\nOpciones de plato principal:\n• Toyo: $27.000\n• Raya: $27.000\n• Piangua: $30.000\n• Jaiba: $30.000\n• Camaron sudado: $30.000\n• Triple: $37.000\n• Mixto: $30.000\n• Filete de marlin: $35.000\n• Pescado frito o sudado: $40.000\n• Huevo de pescado: $30.000');},1400);
     }
   }
   if(d.enviar_nequi){setTimeout(function(){aM('bot','Datos Nequi para pago:\nNumero: 310 432 7103\nTitular: Didi Johana Vente\n\nPor favor envia el comprobante para confirmar su pedido.');},200);}
@@ -538,24 +538,24 @@ def wa_send(num, msg_usuario, txt):
         wa_txt(num, msg_medias)
         dia_semana = datetime.now().weekday()
         if dia_semana <= 4:
+            wa_img(num, "https://raw.githubusercontent.com/herdora24-web/raices-bot/main/menu_ejecutivo.jpg", "Menu ejecutivo del dia")
             sopas = {0:"Sopa de res", 1:"Sopa de raya", 2:"Caldo de pescado", 3:"Sopa de camaron", 4:"Sopa de queso con huevo"}
             sopa_hoy = sopas[dia_semana]
             msg_ejecutivo = (
                 "🍲 *MENU EJECUTIVO* (Lunes a Viernes)\n"
                 f"Sopa del dia: {sopa_hoy}\n"
-                "Incluye: sopa + plato principal + arroz + ensalada + patacon\n\n"
+                "Incluye: sopa + plato principal + arroz + ensalada + patacon + sirope de la casa, SIN costo adicional\n\n"
                 "*Opciones de plato principal:*\n"
-                "• Filete de pollo, cerdo o chuleta: $20.000\n"
-                "• Sudado de tollo o raya: $22.000\n"
-                "• Sudado de piangua o de huevo: $25.000\n"
-                "• Sudado de jaiba, camaron o mixto: $27.000\n"
-                "• Filete de marlin o triple: $30.000\n"
-                "• Cuadruple: $35.000\n"
-                "• Pelada frita o gualajo frito o sudado: $35.000 - $40.000\n"
-                "• Quintuple: $40.000\n"
-                "• Filete de marlin en salsa (tollo, jaiba, camaron, piangua o raya): $40.000\n"
-                "• Filete de marlin mixto: $45.000\n"
-                "• Filete de marlin en salsa de mariscos: $45.000"
+                "• Toyo: $27.000\n"
+                "• Raya: $27.000\n"
+                "• Piangua: $30.000\n"
+                "• Jaiba: $30.000\n"
+                "• Camaron sudado: $30.000\n"
+                "• Triple: $37.000\n"
+                "• Mixto: $30.000\n"
+                "• Filete de marlin: $35.000\n"
+                "• Pescado frito o sudado: $40.000\n"
+                "• Huevo de pescado: $30.000"
             )
             wa_txt(num, msg_ejecutivo)
     if nequi:
