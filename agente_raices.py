@@ -20,7 +20,6 @@ def ahora_co():
     """Fecha/hora real de Colombia (UTC-5), sin importar la zona horaria del servidor (Railway corre en UTC)."""
     return datetime.now(TZ_COLOMBIA)
 
-PALABRAS_CARTA = ["menu","carta","que tienen","que hay","que ofrecen","que manejan","ver carta","ver menu","productos","platos","ejecutivo","almuerzo","almuerzo del dia","menu del dia","porciones","medias"]
 PALABRAS_NEQUI = ["nequi","transferencia","transferir","consignar","pagar","datos de pago","numero de pago"]
 
 DIAS_SEMANA = {0:"lunes",1:"martes",2:"miercoles",3:"jueves",4:"viernes",5:"sabado",6:"domingo"}
@@ -28,6 +27,7 @@ DIAS_SEMANA = {0:"lunes",1:"martes",2:"miercoles",3:"jueves",4:"viernes",5:"saba
 SYSTEM_PROMPT_BASE = """Eres la asistente virtual de Raices Ancestrales del Pacifico Gastro Bar. Eres profesional, formal, cordial y atenta. Representas a un restaurante de alta cocina del Pacifico colombiano. Habla SIEMPRE en espanol, sin usar palabras en ingles.
 
 HOY ES: {fecha_hoy}
+HORA ACTUAL EN BUENAVENTURA: {hora_actual}
 
 SALUDO INICIAL: Al primer mensaje responde SIEMPRE exactamente asi:
 "Bienvenido a Raices Ancestrales del Pacifico Gastro Bar. Con quien tengo el gusto de hablar el dia de hoy?"
@@ -115,7 +115,7 @@ OTRAS BEBIDAS:
 - Cerveza nacional: $7.000
 
 MENU EJECUTIVO (Almuerzo del dia):
-IMPORTANTE: El menu ejecutivo SOLO se ofrece de LUNES A VIERNES. Sabado y domingo NO hay menu ejecutivo. Si el cliente pregunta por el menu ejecutivo, almuerzo del dia o ejecutivo en sabado o domingo, responder: "Lo sentimos, el menu ejecutivo solo lo ofrecemos de lunes a viernes. Hoy contamos unicamente con nuestra carta regular. Con gusto le comparto las opciones disponibles."
+IMPORTANTE: El menu ejecutivo SOLO se ofrece de LUNES A VIERNES y SOLO entre las 12:00 PM y las 3:00 PM (ver REGLA CLAVE mas abajo sobre si se usa la hora actual o la hora de la reserva). Sabado y domingo NO hay menu ejecutivo, y entre semana despues de las 3:00 PM tampoco. Si el cliente pregunta por el menu ejecutivo, almuerzo del dia o ejecutivo fuera de ese horario, responder: "Lo sentimos, el menu ejecutivo lo ofrecemos de lunes a viernes hasta las 3:00 PM. Por el momento contamos unicamente con nuestra carta regular. Con gusto le comparto las opciones disponibles."
 
 Todos los platos del menu ejecutivo estan acompanados de: sopa del dia + arroz + ensalada + patacon + sirope de la casa SIN COSTO ADICIONAL. El sirope va siempre incluido con el almuerzo, no es un adicional que se cobre ni que se ofrezca por separado: nunca lo presentes como opcional ni le asignes precio.
 
@@ -138,9 +138,23 @@ OPCIONES DE PLATO PRINCIPAL DEL EJECUTIVO (todos los dias, precio incluye sopa +
 - Pescado frito o sudado: $40.000
 - Huevo de pescado: $30.000
 
-Cuando el cliente pida ver el menu ejecutivo o el menu del dia (en dias lunes a viernes), se le debe enviar la imagen del menu ejecutivo.
+HORARIO DEL MENU EJECUTIVO: El menu ejecutivo SOLO se ofrece de lunes a viernes, y SOLO entre las 12:00 PM y las 3:00 PM. Despues de las 3:00 PM, aunque sea lunes a viernes, el menu ejecutivo YA NO se ofrece bajo ninguna circunstancia, unicamente la carta regular.
 
-IMPORTANTE — CUANDO EL CLIENTE PIDA VER LA CARTA, EL MENU O EL EJECUTIVO: Las imagenes de la carta y del menu ejecutivo ya contienen todos los platos y precios, asi que NO debes listar ni describir platos, precios ni el menu en tu respuesta de texto. Responde unicamente con un mensaje breve y cordial, por ejemplo: "Con gusto, le comparto nuestra carta." o "Aqui tiene nuestro menu del dia, senor/a [nombre]." No repitas informacion de platos, precios, sopas ni acompanamientos en el texto: esa informacion ya va en las imagenes y en el mensaje de porciones que se envia despues.
+REGLA CLAVE PARA SABER SI APLICA EL EJECUTIVO: Lo que importa es la fecha y hora PARA LA QUE ES EL PEDIDO, no la hora en la que el cliente esta escribiendo:
+- Si el cliente pide domicilio o para llevar PARA AHORA MISMO: usa la fecha y hora ACTUAL (HOY, {fecha_hoy}) para decidir si aplica el ejecutivo (lunes a viernes, 12:00 PM a 3:00 PM).
+- Si el cliente esta haciendo una RESERVA: usa la fecha y hora DE LA RESERVA (no la hora actual) para decidir si aplica el ejecutivo. Por ejemplo, si hoy es sabado pero el cliente reserva para el martes a la 1:00 PM, SI aplica el ejecutivo para esa reserva. Si reserva para un sabado, domingo, o para una hora fuera de 12:00 PM a 3:00 PM (entre semana), NO aplica el ejecutivo sin importar que dia sea hoy.
+- Si no aplica el ejecutivo segun esta regla, nunca lo menciones, no lo ofrezcas, y no envies su imagen, aunque el cliente pregunte por "el menu" en general.
+
+MARCADOR PARA ENVIO DE IMAGENES: Cuando el cliente pida ver la carta, el menu, el menu ejecutivo, el menu del dia, las opciones, los platos, o cualquier cosa similar, debes incluir en tu respuesta (en cualquier parte, lo limpiamos automaticamente) el siguiente marcador exacto:
+##ENVIAR_IMAGENES##{"carta":true_o_false,"ejecutivo":true_o_false}##
+
+Reglas para llenar el marcador:
+- "carta": true SIEMPRE que el cliente pida ver la carta, el menu, los platos o las opciones disponibles, sin importar el flujo (domicilio, para llevar o reserva).
+- "ejecutivo": true UNICAMENTE si aplica segun la REGLA CLAVE de arriba (fecha/hora del pedido o de la reserva, lunes a viernes, 12:00 PM a 3:00 PM). Si no aplica, debe ir "ejecutivo":false.
+- Si el cliente NO esta pidiendo ver el menu (por ejemplo, esta dando su nombre, direccion, o confirmando un pago), NO incluyas el marcador en absoluto.
+- El marcador no debe contener espacios ni texto adicional, solo el JSON exacto con true o false (sin comillas en true/false, son booleanos).
+
+IMPORTANTE — SOBRE EL TEXTO DE TU RESPUESTA CUANDO ENVIAS IMAGENES: Las imagenes de la carta y del menu ejecutivo ya contienen todos los platos y precios, asi que NO debes listar ni describir platos, precios ni el menu en tu respuesta de texto. Responde unicamente con un mensaje breve y cordial, por ejemplo: "Con gusto, le comparto nuestra carta." o "Aqui tiene nuestro menu del dia, senor/a [nombre]." No repitas informacion de platos, precios, sopas ni acompanamientos en el texto: esa informacion ya va en las imagenes y en el mensaje de porciones que se envia despues. Si el ejecutivo no aplica, no lo menciones ni te disculpes por no enviarlo, simplemente comparte la carta con naturalidad.
 
 MEDIAS PORCIONES (platos de carta en porcion mitad):
 - Media cazuela: $45.000
@@ -291,7 +305,7 @@ REGLAS:
 - Habla SIEMPRE en espanol, sin palabras en ingles
 - Tono formal y profesional en todo momento
 - Si preguntan por la direccion del restaurante: "Nos encontramos en la Calle 1 #5a-5456, barrio Centro, Buenaventura. Estamos diagonal a Salamandra, frente al Edificio Altos de la Bahia."
-- MENU EJECUTIVO: Solo disponible de LUNES A VIERNES. Si hoy es sabado o domingo, NO ofrecer menu ejecutivo bajo ninguna circunstancia. Solo carta regular. De lunes a viernes, informar la sopa del dia correcta segun HOY ({fecha_hoy}). El sirope de la casa SIEMPRE va incluido sin costo con el menu ejecutivo, nunca se cobra ni se ofrece como opcional.
+- MENU EJECUTIVO: Solo disponible de LUNES A VIERNES entre 12:00 PM y 3:00 PM. Fuera de ese dia u horario, NO ofrecer menu ejecutivo bajo ninguna circunstancia. Solo carta regular. Para domicilio/para llevar usa la hora ACTUAL; para reservas usa la fecha y hora DE LA RESERVA (ver REGLA CLAVE). De lunes a viernes cuando aplique, informar la sopa del dia correcta segun corresponda. El sirope de la casa SIEMPRE va incluido sin costo con el menu ejecutivo, nunca se cobra ni se ofrece como opcional.
 - DOMICILIO: Solo a los barrios listados en las zonas de cobertura. Cualquier otro barrio: informar que no hay cobertura y ofrecer para llevar."""
 
 PAGE = r"""<!DOCTYPE html>
@@ -357,9 +371,8 @@ function proc(d){
   if(d.enviar_carta){
     setTimeout(function(){aI('https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_1.jpg');},200);
     setTimeout(function(){aI('https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_2.jpg');},500);
-    var diaSemana=d.dia_semana; // 0=lunes ... 6=domingo, calculado en el servidor con hora Colombia
     var delayFinal=800;
-    if(diaSemana<=4){
+    if(d.enviar_ejecutivo){
       setTimeout(function(){aI('https://raw.githubusercontent.com/herdora24-web/raices-bot/main/menu_ejecutivo.jpg');},800);
       delayFinal=1100;
     }
@@ -429,7 +442,22 @@ def get_system_prompt():
     dia_num = now.weekday()
     dia_nombre = DIAS_SEMANA[dia_num]
     fecha_hoy = f"{dia_nombre} {now.strftime('%d/%m/%Y')}"
-    return SYSTEM_PROMPT_BASE.replace("{fecha_hoy}", fecha_hoy)
+    hora_actual = now.strftime('%I:%M %p')
+    return SYSTEM_PROMPT_BASE.replace("{fecha_hoy}", fecha_hoy).replace("{hora_actual}", hora_actual)
+
+def limpiar_marcadores(txt):
+    """Quita cualquier marcador tecnico (##NOMBRE##{...}##) del texto antes de mostrarlo al cliente."""
+    clean = txt
+    for marcador in ("##PEDIDO_CONFIRMADO##", "##ENVIAR_IMAGENES##"):
+        while marcador in clean:
+            i = clean.index(marcador)
+            try:
+                j = clean.index("##", i + len(marcador)) + 2
+                clean = (clean[:i] + clean[j:]).strip()
+            except ValueError:
+                clean = clean[:i].strip()
+                break
+    return clean
 
 def call_claude(session_id, mensaje):
     if session_id not in conversaciones:
@@ -449,9 +477,7 @@ def call_claude(session_id, mensaje):
     }
     r = requests.post("https://openrouter.ai/api/v1/chat/completions",headers=hdrs,json=body)
     txt = r.json()["choices"][0]["message"]["content"]
-    clean = txt
-    if "##PEDIDO_CONFIRMADO##" in clean:
-        clean = clean[:clean.index("##PEDIDO_CONFIRMADO##")].strip()
+    clean = limpiar_marcadores(txt)
     conversaciones[session_id].append({"role":"assistant","content":clean})
     pedido = extraer_pedido(txt)
     if pedido:
@@ -460,14 +486,16 @@ def call_claude(session_id, mensaje):
     return txt
 
 def build_resp(msg, txt):
-    m = msg.lower()
-    carta  = any(p in m for p in PALABRAS_CARTA)
-    nequi  = any(p in m for p in PALABRAS_NEQUI)
-    clean  = txt
-    if "##PEDIDO_CONFIRMADO##" in clean:
-        clean = clean[:clean.index("##PEDIDO_CONFIRMADO##")].strip()
+    clean = limpiar_marcadores(txt)
+    imagenes = extraer_imagenes(txt)
     dia_semana = ahora_co().weekday()  # 0=lunes ... 6=domingo, segun hora Colombia
-    return {"response":clean, "enviar_carta":carta, "enviar_nequi":nequi, "dia_semana":dia_semana}
+    return {
+        "response":clean,
+        "enviar_carta":imagenes["carta"],
+        "enviar_ejecutivo":imagenes["ejecutivo"],
+        "enviar_nequi": any(p in msg.lower() for p in PALABRAS_NEQUI),
+        "dia_semana":dia_semana
+    }
 
 def extraer_pedido(txt):
     if "##PEDIDO_CONFIRMADO##" in txt:
@@ -477,6 +505,21 @@ def extraer_pedido(txt):
             return json.loads(txt[i:j])
         except: pass
     return None
+
+def extraer_imagenes(txt):
+    """Lee el marcador ##ENVIAR_IMAGENES##{...}## que Claude incluye cuando corresponde
+    mostrar la carta y/o el menu ejecutivo. Claude decide segun el contexto real
+    (hora actual para domicilio/para llevar, hora de la reserva para reservas)."""
+    if "##ENVIAR_IMAGENES##" in txt:
+        try:
+            i = txt.index("##ENVIAR_IMAGENES##")+len("##ENVIAR_IMAGENES##")
+            j = txt.index("##",i)
+            data = json.loads(txt[i:j])
+            return {"carta": bool(data.get("carta", False)), "ejecutivo": bool(data.get("ejecutivo", False))}
+        except: pass
+    return {"carta": False, "ejecutivo": False}
+
+
 
 def gclient():
     j = os.environ.get("GOOGLE_CREDENTIALS_JSON")
@@ -519,18 +562,14 @@ def wa_img(num,url,cap=""):
         json={"messaging_product":"whatsapp","to":num,"type":"image","image":{"link":url,"caption":cap}})
 
 def wa_send(num, msg_usuario, txt):
-    m = msg_usuario.lower()
-    carta = any(p in m for p in PALABRAS_CARTA)
-    nequi = any(p in m for p in PALABRAS_NEQUI)
-    clean = txt
-    if "##PEDIDO_CONFIRMADO##" in clean:
-        clean = clean[:clean.index("##PEDIDO_CONFIRMADO##")].strip()
+    nequi = any(p in msg_usuario.lower() for p in PALABRAS_NEQUI)
+    clean = limpiar_marcadores(txt)
+    imagenes = extraer_imagenes(txt)
     if clean: wa_txt(num, clean)
-    if carta:
+    if imagenes["carta"]:
         wa_img(num, "https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_1.jpg", "Nuestra carta - Parte 1")
         wa_img(num, "https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_2.jpg", "Nuestra carta - Parte 2")
-        dia_semana = ahora_co().weekday()
-        if dia_semana <= 4:
+        if imagenes["ejecutivo"]:
             wa_img(num, "https://raw.githubusercontent.com/herdora24-web/raices-bot/main/menu_ejecutivo.jpg", "Menu ejecutivo del dia")
         msg_medias = (
             "🍽️ *MEDIAS PORCIONES* (disponibles en carta)\n"
