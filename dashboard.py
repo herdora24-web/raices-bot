@@ -100,7 +100,7 @@ DASHBOARD_PAGE = r"""<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard - Raices Gastro Bar</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
 <style>
 body{font-family:Arial,sans-serif;background:#F5F0E8}
 .card{background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.1)}
