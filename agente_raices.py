@@ -131,7 +131,9 @@ OPCIONES DE PLATO PRINCIPAL DEL EJECUTIVO (todos los dias, precio incluye sopa +
 - Pescado frito o sudado: $40.000
 - Huevo de pescado: $30.000
 
-Cuando el cliente pida ver el menu ejecutivo o el menu del dia (en dias lunes a viernes), se le debe enviar la imagen del menu ejecutivo ademas de la informacion en texto.
+Cuando el cliente pida ver el menu ejecutivo o el menu del dia (en dias lunes a viernes), se le debe enviar la imagen del menu ejecutivo.
+
+IMPORTANTE — CUANDO EL CLIENTE PIDA VER LA CARTA, EL MENU O EL EJECUTIVO: Las imagenes de la carta y del menu ejecutivo ya contienen todos los platos y precios, asi que NO debes listar ni describir platos, precios ni el menu en tu respuesta de texto. Responde unicamente con un mensaje breve y cordial, por ejemplo: "Con gusto, le comparto nuestra carta." o "Aqui tiene nuestro menu del dia, senor/a [nombre]." No repitas informacion de platos, precios, sopas ni acompanamientos en el texto: esa informacion ya va en las imagenes y en el mensaje de porciones que se envia despues.
 
 MEDIAS PORCIONES (platos de carta en porcion mitad):
 - Media cazuela: $45.000
@@ -348,13 +350,13 @@ function proc(d){
   if(d.enviar_carta){
     setTimeout(function(){aI('https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_1.jpg');},200);
     setTimeout(function(){aI('https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_2.jpg');},500);
-    setTimeout(function(){aM('bot','🍽️ MEDIAS PORCIONES (disponibles en carta)\n• Media cazuela: $45.000\n• Media chuleta a la calima (cerdo, pollo o pescado): $45.000\n• Medio arroz marinero: $33.000\n\n🍟 PORCIONES ADICIONALES\n• Arroz: $4.000\n• Patacón: $5.000\n• Papas a la francesa: $5.000\n• Papachina: $8.000\n• Toyo: $12.000\n• Piangua: $15.000\n• Jaiba: $18.000\n• Langostino: $30.000');},800);
     var hoy=new Date().getDay();
+    var delayFinal=800;
     if(hoy>=1&&hoy<=5){
-      setTimeout(function(){aI('https://raw.githubusercontent.com/herdora24-web/raices-bot/main/menu_ejecutivo.jpg');},1100);
-      var sopas={1:'Sopa de res',2:'Sopa de raya',3:'Caldo de pescado',4:'Sopa de camaron',5:'Sopa de queso con huevo'};
-      setTimeout(function(){aM('bot','🍲 MENU EJECUTIVO (Lunes a Viernes)\nSopa del dia: '+sopas[hoy]+'\nIncluye: sopa + plato principal + arroz + ensalada + patacon + sirope de la casa, SIN costo adicional\n\nOpciones de plato principal:\n• Toyo: $27.000\n• Raya: $27.000\n• Piangua: $30.000\n• Jaiba: $30.000\n• Camaron sudado: $30.000\n• Triple: $37.000\n• Mixto: $30.000\n• Filete de marlin: $35.000\n• Pescado frito o sudado: $40.000\n• Huevo de pescado: $30.000');},1400);
+      setTimeout(function(){aI('https://raw.githubusercontent.com/herdora24-web/raices-bot/main/menu_ejecutivo.jpg');},800);
+      delayFinal=1100;
     }
+    setTimeout(function(){aM('bot','🍽️ MEDIAS PORCIONES (disponibles en carta)\n• Media cazuela: $45.000\n• Media chuleta a la calima (cerdo, pollo o pescado): $45.000\n• Medio arroz marinero: $33.000\n\n🍟 PORCIONES ADICIONALES\n• Arroz: $4.000\n• Patacón: $5.000\n• Papas a la francesa: $5.000\n• Papachina: $8.000\n• Toyo: $12.000\n• Piangua: $15.000\n• Jaiba: $18.000\n• Langostino: $30.000');},delayFinal);
   }
   if(d.enviar_nequi){setTimeout(function(){aM('bot','Datos Nequi para pago:\nNumero: 310 432 7103\nTitular: Didi Johana Vente\n\nPor favor envia el comprobante para confirmar su pedido.');},200);}
 }
@@ -520,6 +522,9 @@ def wa_send(num, msg_usuario, txt):
         from datetime import datetime
         wa_img(num, "https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_1.jpg", "Nuestra carta - Parte 1")
         wa_img(num, "https://raw.githubusercontent.com/herdora24-web/raices-bot/main/carta_raices_2.jpg", "Nuestra carta - Parte 2")
+        dia_semana = datetime.now().weekday()
+        if dia_semana <= 4:
+            wa_img(num, "https://raw.githubusercontent.com/herdora24-web/raices-bot/main/menu_ejecutivo.jpg", "Menu ejecutivo del dia")
         msg_medias = (
             "🍽️ *MEDIAS PORCIONES* (disponibles en carta)\n"
             "• Media cazuela: $45.000\n"
@@ -536,28 +541,6 @@ def wa_send(num, msg_usuario, txt):
             "• Langostino: $30.000"
         )
         wa_txt(num, msg_medias)
-        dia_semana = datetime.now().weekday()
-        if dia_semana <= 4:
-            wa_img(num, "https://raw.githubusercontent.com/herdora24-web/raices-bot/main/menu_ejecutivo.jpg", "Menu ejecutivo del dia")
-            sopas = {0:"Sopa de res", 1:"Sopa de raya", 2:"Caldo de pescado", 3:"Sopa de camaron", 4:"Sopa de queso con huevo"}
-            sopa_hoy = sopas[dia_semana]
-            msg_ejecutivo = (
-                "🍲 *MENU EJECUTIVO* (Lunes a Viernes)\n"
-                f"Sopa del dia: {sopa_hoy}\n"
-                "Incluye: sopa + plato principal + arroz + ensalada + patacon + sirope de la casa, SIN costo adicional\n\n"
-                "*Opciones de plato principal:*\n"
-                "• Toyo: $27.000\n"
-                "• Raya: $27.000\n"
-                "• Piangua: $30.000\n"
-                "• Jaiba: $30.000\n"
-                "• Camaron sudado: $30.000\n"
-                "• Triple: $37.000\n"
-                "• Mixto: $30.000\n"
-                "• Filete de marlin: $35.000\n"
-                "• Pescado frito o sudado: $40.000\n"
-                "• Huevo de pescado: $30.000"
-            )
-            wa_txt(num, msg_ejecutivo)
     if nequi:
         wa_txt(num, "Datos Nequi:\nNumero: 310 432 7103\nTitular: Didi Johana Vente\n\nEnvienos el comprobante para confirmar.")
 
