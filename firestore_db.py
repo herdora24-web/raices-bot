@@ -9,9 +9,16 @@ de mesas por franja horaria, y cambiar estados desde el dashboard.
 import os
 import json
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import firebase_admin
 from firebase_admin import credentials, firestore
+
+TZ_COLOMBIA = ZoneInfo("America/Bogota")
+
+def _hoy_co():
+    """Fecha actual de Colombia (sin hora), para comparar contra fechas guardadas."""
+    return datetime.now(TZ_COLOMBIA).date()
 
 # ----------------------------------------------------------------
 # Capacidad maxima por franja horaria (en personas)
@@ -250,8 +257,39 @@ def actualizar_estado(doc_id, nuevo_estado):
         return False
 
 
+def limpiar_completados():
+    """
+    Borra automaticamente los pedidos PARA_LLEVAR y reservas que ya quedaron en estado
+    ENTREGADO y cuya fecha relevante (fecha_creacion para PARA_LLEVAR, fecha_reserva para
+    RESERVA) ya paso (es anterior a hoy). Esto evita que el dashboard se sature con
+    registros viejos ya completados. Se ejecuta de forma perezosa cada vez que se listan
+    los pedidos, sin necesidad de un cron aparte.
+    """
+    firestore_db = db()
+    if firestore_db is None:
+        return
+    try:
+        hoy = _hoy_co()
+        docs = firestore_db.collection("pedidos_reservas").where("estado", "==", "ENTREGADO").stream()
+        for d in docs:
+            datos = d.to_dict()
+            campo_fecha = datos.get("fecha_reserva") if datos.get("tipo") == "RESERVA" else datos.get("fecha_creacion")
+            fecha_normalizada = _normalizar_fecha(campo_fecha)
+            if not fecha_normalizada:
+                continue
+            try:
+                fecha_dt = datetime.strptime(fecha_normalizada, "%Y-%m-%d").date()
+            except ValueError:
+                continue
+            if fecha_dt < hoy:
+                firestore_db.collection("pedidos_reservas").document(d.id).delete()
+    except Exception as e:
+        print("Error limpiando pedidos completados:", e)
+
+
 def listar_pedidos(limite=100):
     """Devuelve los pedidos/reservas mas recientes, para el dashboard."""
+    limpiar_completados()
     firestore_db = db()
     if firestore_db is None:
         return []
