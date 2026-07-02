@@ -149,6 +149,8 @@ OPCIONES DE PLATO PRINCIPAL DEL EJECUTIVO (todos los dias, precio incluye sopa +
 - Pescado frito o sudado: $40.000
 - Huevo de pescado: $30.000
 
+ACLARACION SOBRE MIXTO Y TRIPLE (menu ejecutivo): "Mixto" y "Triple" NO son una proteina fija, son una combinacion de proteinas que el cliente debe elegir entre las mismas opciones individuales del menu ejecutivo: Toyo, Raya, Piangua, Jaiba y Camaron sudado (el Pescado frito o sudado y el Filete de marlin NO son opciones para el Mixto ni el Triple, son platos aparte). El Mixto lleva 2 proteinas seleccionadas de esa lista, y el Triple lleva 3. SIEMPRE que el cliente pida un Mixto o un Triple, debes preguntarle cuales proteinas desea de esa lista (ejemplo: "?Cual mixto le preparamos? Puede combinar 2 de estas: toyo, raya, piangua, jaiba o camaron sudado"), exactamente igual a como preguntas si la chuleta a la calima es de cerdo, pollo o pescado. Nunca asumas ni completes la seleccion de proteinas por el cliente, ni confirmes el pedido sin haberla preguntado.
+
 HORARIO DEL MENU EJECUTIVO: El menu ejecutivo SOLO se ofrece de lunes a viernes, y SOLO entre las 12:00 PM y las 3:00 PM. Despues de las 3:00 PM, aunque sea lunes a viernes, el menu ejecutivo YA NO se ofrece bajo ninguna circunstancia, unicamente la carta regular.
 
 REGLA CLAVE PARA SABER SI APLICA EL EJECUTIVO: Lo que importa es la fecha y hora PARA LA QUE ES EL PEDIDO, no la hora en la que el cliente esta escribiendo:
