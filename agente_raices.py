@@ -4,7 +4,7 @@ AGENTE RAICES - ANCESTRALES DEL PACIFICO GASTRO BAR
 Flask + OpenRouter + Google Sheets + WhatsApp + Web UI movil
 ================================================================
 """
-import os, json, requests, tempfile
+import os, json, requests, tempfile, base64
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from flask import Flask, request, jsonify, render_template_string, send_from_directory
@@ -39,9 +39,13 @@ Una vez el cliente diga su nombre, identifica si es hombre o mujer y dirigete a 
 TONO: Formal y profesional en todo momento. No uses expresiones informales. Usa un lenguaje respetuoso y elegante que refleje la categoria del restaurante.
 
 HORARIO DE ATENCION:
-- Para Llevar y Reservas: Todos los dias de 12:00 PM a 7:00 PM
+- Horario de servicio del restaurante: todos los dias de 12:00 PM a 7:00 PM.
+- Para reservas de eventos o grupos grandes, el servicio puede extenderse aproximadamente 2 horas mas alla del cierre habitual (por ejemplo, hasta las 9:00 PM) si la reserva asi lo requiere.
 - DIAS SIN SERVICIO (solo mencionar si el cliente pregunta o si es relevante): 25 de diciembre, 1 de enero, Viernes Santo y 1 de mayo
-- Si el cliente escribe fuera de horario: "En este momento nuestro servicio no esta disponible. Le atendemos de lunes a domingo de 12:00 PM a 7:00 PM. Con gusto le esperamos."
+
+IMPORTANTE — HORA EN QUE ESCRIBE EL CLIENTE vs HORARIO DE SERVICIO: El cliente puede escribirte a CUALQUIER hora del dia o de la noche (por ejemplo a las 6:00 AM), y tu SIEMPRE debes responder y atenderlo con normalidad, nunca ignores el mensaje ni actues como si el negocio estuviera cerrado sin mas. Debes diferenciar segun el flujo:
+- RESERVAS: se pueden tomar a cualquier hora en que el cliente escriba, sin importar si el restaurante esta cerrado en ese momento, porque la reserva es para una fecha y hora futura. Aclarale de forma natural, en el momento oportuno de la conversacion (por ejemplo al confirmar fecha y hora), que el horario de atencion del restaurante es de 12:00 PM a 7:00 PM, y que para eventos o grupos grandes el servicio puede extenderse un par de horas mas si la reserva lo amerita.
+- PARA LLEVAR EN ESTE MOMENTO: si el cliente pide que le preparen un pedido para recoger AHORA MISMO y la hora actual ({hora_actual}) esta fuera de 12:00 PM a 7:00 PM, informale amablemente que el servicio para llevar esta disponible de 12:00 PM a 7:00 PM, y ofrecele coordinar una reserva o volver a escribir dentro del horario. Nunca tomes un pedido para llevar "de inmediato" si el restaurante esta cerrado en este momento.
 
 MENU COMPLETO:
 ENTRADAS:
@@ -205,6 +209,16 @@ DATOS DE PAGO NEQUI:
 METODOS DE PAGO EN LOCAL:
 - Tarjeta de credito: Si aceptan
 - Efectivo: Si aceptan
+
+VERIFICACION DE COMPROBANTES DE PAGO: Cuando el cliente envie una imagen de un comprobante de pago (Nequi o transferencia), el sistema la lee automaticamente y te informara el resultado en un mensaje que empieza con "[El cliente envio un comprobante de pago...]" o similar. Usa ese resultado asi:
+- Si el sistema detecto un MONTO y el flujo actual es una RESERVA: el deposito minimo requerido es $50.000.
+  - Si el monto es igual o mayor a $50.000 (el cliente puede enviar exactamente $50.000, un adelanto mayor como $100.000 o $150.000, o incluso el valor total de la cuenta si asi lo prefiere), confirma la reserva con normalidad y agradece el pago.
+  - Si el monto es MENOR a $50.000, informa amablemente al cliente el monto que detectaste y explicale que el deposito minimo es de $50.000, pidiendole que envie o complete la diferencia antes de poder confirmar la reserva.
+- Si el sistema detecto un MONTO y el flujo actual es PARA LLEVAR: compara el monto contra el total del pedido (productos + empaques) que ya calculaste con el cliente.
+  - Si el monto es igual o mayor al total, confirma el pedido con normalidad.
+  - Si el monto es MENOR al total, informa amablemente el monto detectado, el total esperado, y pide que complete la diferencia antes de confirmar.
+- Si el sistema indica que NO pudo leer el monto con claridad, pide amablemente al cliente que te confirme por escrito cuanto transfirio, sin asumir ningun valor.
+- Nunca inventes un monto que el sistema no te haya indicado explicitamente.
 
 FLUJO PARA LLEVAR:
 1. Saluda y pide nombre
@@ -529,6 +543,63 @@ def extraer_imagenes(txt):
     return {"carta": False, "ejecutivo": False}
 
 
+def leer_monto_comprobante(image_bytes, media_type="image/jpeg"):
+    """Usa Claude Vision (via OpenRouter) para leer el monto de un comprobante de pago
+    (Nequi, transferencia u otro medio digital colombiano) a partir de la imagen recibida.
+    Devuelve un float con el monto en pesos colombianos, o None si no se pudo leer con certeza."""
+    try:
+        b64 = base64.b64encode(image_bytes).decode("utf-8")
+        hdrs = {
+            "Authorization":"Bearer "+os.environ.get("OPENROUTER_API_KEY",""),
+            "Content-Type":"application/json",
+            "HTTP-Referer":"https://raices-bot.com",
+            "X-Title":"Raices Gastro Bar Bot"
+        }
+        prompt_vision = (
+            "Esta imagen deberia ser un comprobante de pago (Nequi, transferencia bancaria u otro medio "
+            "digital) de Colombia. Identifica el MONTO TOTAL transferido o pagado, en pesos colombianos. "
+            "Responde UNICAMENTE con un JSON en una sola linea, sin texto adicional, sin backticks, con este "
+            "formato exacto: {\"monto\": <numero_o_null>}. Si logras leer el monto con certeza, ponlo como "
+            "numero entero sin puntos ni simbolos (ejemplo: 50000). Si la imagen no es un comprobante de pago, "
+            "o no puedes leer el monto con certeza, responde {\"monto\": null}."
+        )
+        body = {
+            "model":"anthropic/claude-sonnet-4-5",
+            "max_tokens":200,
+            "messages":[{
+                "role":"user",
+                "content":[
+                    {"type":"text","text":prompt_vision},
+                    {"type":"image_url","image_url":{"url":f"data:{media_type};base64,{b64}"}}
+                ]
+            }]
+        }
+        r = requests.post("https://openrouter.ai/api/v1/chat/completions",headers=hdrs,json=body,timeout=30)
+        texto = r.json()["choices"][0]["message"]["content"].strip()
+        texto = texto.replace("```json","").replace("```","").strip()
+        data = json.loads(texto)
+        monto = data.get("monto")
+        return float(monto) if monto is not None else None
+    except Exception as e:
+        print("Error leyendo comprobante:", e)
+        return None
+
+
+def descargar_imagen_wa(image_id):
+    """Descarga una imagen enviada por WhatsApp a partir de su media id.
+    Devuelve (bytes_imagen, mime_type), o (None, None) si algo falla."""
+    try:
+        t = os.environ.get("WHATSAPP_TOKEN")
+        h = {"Authorization": f"Bearer {t}"}
+        meta = requests.get(f"https://graph.facebook.com/v18.0/{image_id}", headers=h).json()
+        url = meta.get("url")
+        mime = meta.get("mime_type", "image/jpeg")
+        contenido = requests.get(url, headers=h).content
+        return contenido, mime
+    except Exception as e:
+        print("Error descargando imagen de WhatsApp:", e)
+        return None, None
+
 
 def wa_txt(num,msg):
     t=os.environ.get("WHATSAPP_TOKEN"); p=os.environ.get("PHONE_NUMBER_ID")
@@ -634,7 +705,19 @@ def wh_recv():
         elif tipo=="audio":
             txt=whisper_wa(msg["audio"]["id"])
             if not txt: wa_txt(num,"No pude escuchar. Por favor escriba su mensaje."); return jsonify({"ok":True}),200
-        elif tipo=="image": txt="[Cliente envio imagen, probablemente comprobante de pago]"
+        elif tipo=="image":
+            img_bytes, mime = descargar_imagen_wa(msg["image"]["id"])
+            if img_bytes:
+                monto = leer_monto_comprobante(img_bytes, mime or "image/jpeg")
+                if monto is not None:
+                    txt = f"[El cliente envio un comprobante de pago. Monto detectado por el sistema: ${monto:,.0f} COP]"
+                else:
+                    txt = ("[El cliente envio una imagen que parece ser un comprobante de pago, pero el sistema "
+                           "no pudo leer el monto con claridad. Pidele amablemente que confirme por escrito "
+                           "cuanto transfirio.]")
+            else:
+                txt = ("[El cliente envio una imagen (posiblemente un comprobante de pago) pero no se pudo "
+                       "descargar. Pidele que confirme por escrito el monto transferido.]")
         else: wa_txt(num,"Solo entiendo texto, notas de voz e imagenes."); return jsonify({"ok":True}),200
         wa_send(num, txt, call_claude(num,txt))
         return jsonify({"ok":True}),200
