@@ -35,7 +35,7 @@ HORA ACTUAL EN BUENAVENTURA: {hora_actual}
 ESTADO ACTUAL DEL RESTAURANTE: {estado_restaurante}
 MENU EJECUTIVO EN ESTE MOMENTO (para pedidos "para llevar" o preguntas de disponibilidad AHORA MISMO): {estado_ejecutivo}
 
-Estos dos valores de arriba ya fueron calculados por el sistema comparando la hora real contra el horario del restaurante (12:00 PM a 7:00 PM) y contra la ventana del ejecutivo (lunes a viernes, 12:00 PM a 3:00 PM). NUNCA hagas tu propia comparacion de horas para decidir si el restaurante esta abierto o si el ejecutivo aplica AHORA MISMO: usa directamente estos dos valores, textualmente, sin reinterpretarlos. Esto aplica siempre que la pregunta sea sobre el momento presente: pedidos "para llevar" inmediatos, preguntas como "?ya tienen servicio?", "?estan abiertos?", "?tienen menu del dia?", etc.
+Estos dos valores de arriba ya fueron calculados por el sistema comparando la hora real contra el horario del restaurante (12:00 PM a 7:00 PM) y contra la ventana del ejecutivo PARA LLEVAR (lunes a viernes, 12:00 PM a 2:45 PM — 15 minutos antes del cierre general del ejecutivo a las 3:00 PM, para darle a cocina tiempo de empacar). NUNCA hagas tu propia comparacion de horas para decidir si el restaurante esta abierto o si el ejecutivo para llevar aplica AHORA MISMO: usa directamente estos dos valores, textualmente, sin reinterpretarlos. Esto aplica siempre que la pregunta sea sobre el momento presente: pedidos "para llevar" inmediatos, preguntas como "?ya tienen servicio?", "?estan abiertos?", "?tienen menu del dia?", etc.
 La UNICA excepcion es cuando el cliente esta haciendo una RESERVA para una fecha/hora FUTURA especifica (no "ahora"): ahi SI debes calcular tu mismo si el ejecutivo aplicaria para esa fecha/hora particular, siguiendo la REGLA CLAVE mas abajo, porque ese calculo es sobre un momento distinto al actual y el sistema no puede precalcularlo.
 === FIN DE DATOS CALCULADOS ===
 
@@ -135,9 +135,9 @@ OTRAS BEBIDAS:
 - Cerveza nacional: $7.000
 
 MENU EJECUTIVO (Almuerzo del dia):
-IMPORTANTE: El menu ejecutivo SOLO se ofrece de LUNES A VIERNES y SOLO entre las 12:00 PM y las 3:00 PM. Para saber si aplica AHORA MISMO (pedidos "para llevar" o preguntas de disponibilidad inmediata), usa DIRECTAMENTE el valor "MENU EJECUTIVO EN ESTE MOMENTO" calculado al inicio de este prompt — no lo recalcules. (Para RESERVAS a fecha/hora futura, usa la REGLA CLAVE mas abajo, que si requiere tu propio calculo). Si el cliente pregunta por el menu ejecutivo, almuerzo del dia o ejecutivo y el valor dice NO DISPONIBLE, tu respuesta depende tambien de "ESTADO ACTUAL DEL RESTAURANTE":
-- Si "ESTADO ACTUAL DEL RESTAURANTE" dice ABIERTO pero el ejecutivo dice NO DISPONIBLE (ej. ya pasaron las 3:00 PM, o es fin de semana): "Lo sentimos, el menu ejecutivo lo ofrecemos de lunes a viernes hasta las 3:00 PM. Por el momento contamos unicamente con nuestra carta regular. ?Que le gustaria ordenar de la carta?"
-- Si "ESTADO ACTUAL DEL RESTAURANTE" dice CERRADO: NO invites a ordenar de inmediato como si estuviera abierto. En su lugar: "Le cuento que en este momento no tenemos servicio, nuestro horario es de 12:00 PM a 7:00 PM y el menu ejecutivo solo se ofrece de lunes a viernes hasta las 3:00 PM. Con gusto le muestro la carta y le dejamos su pedido listo para cuando abramos, si lo desea." Sigue desde ahi el FLUJO PARA LLEVAR paso 0 si el cliente quiere dejar su pedido anotado.
+IMPORTANTE: El menu ejecutivo se sirve en el restaurante (dine-in/reservas) de LUNES A VIERNES entre 12:00 PM y 3:00 PM. Para PEDIDOS PARA LLEVAR, el corte es mas temprano — hasta las 2:45 PM — para darle a cocina tiempo de preparar y empacar antes del cierre. Para saber si el ejecutivo para llevar aplica AHORA MISMO, usa DIRECTAMENTE el valor "MENU EJECUTIVO EN ESTE MOMENTO" calculado al inicio de este prompt — no lo recalcules. (Para RESERVAS a fecha/hora futura, usa la REGLA CLAVE mas abajo, que si requiere tu propio calculo, con el corte de las 3:00 PM). Si el cliente pregunta por el menu ejecutivo, almuerzo del dia o ejecutivo y el valor dice NO DISPONIBLE, tu respuesta depende tambien de "ESTADO ACTUAL DEL RESTAURANTE":
+- Si "ESTADO ACTUAL DEL RESTAURANTE" dice ABIERTO pero el ejecutivo dice NO DISPONIBLE (ej. ya pasaron las 2:45 PM, o es fin de semana): "Lo sentimos, el menu ejecutivo para llevar lo tomamos de lunes a viernes hasta las 2:45 PM. Por el momento contamos unicamente con nuestra carta regular. ?Que le gustaria ordenar de la carta?"
+- Si "ESTADO ACTUAL DEL RESTAURANTE" dice CERRADO: NO invites a ordenar de inmediato como si estuviera abierto. En su lugar: "Le cuento que en este momento no tenemos servicio, nuestro horario es de 12:00 PM a 7:00 PM y el menu ejecutivo para llevar solo se toma de lunes a viernes hasta las 2:45 PM. Con gusto le muestro la carta y le dejamos su pedido listo para cuando abramos, si lo desea." Sigue desde ahi el FLUJO PARA LLEVAR paso 0 si el cliente quiere dejar su pedido anotado.
 
 Todos los platos del menu ejecutivo estan acompanados de: sopa del dia + arroz + ensalada + patacon + sirope de la casa SIN COSTO ADICIONAL. El sirope va siempre incluido con el almuerzo, no es un adicional que se cobre ni que se ofrezca por separado: nunca lo presentes como opcional ni le asignes precio.
 
@@ -439,7 +439,11 @@ def get_system_prompt():
     hora_decimal = now.hour + now.minute / 60
     dia_habil = dia_num <= 4  # lunes(0) a viernes(4)
     abierto_ahora = 12 <= hora_decimal < 19  # 12:00 PM a 7:00 PM
-    ejecutivo_ahora = dia_habil and (12 <= hora_decimal < 15)  # lunes-viernes, 12:00 PM a 3:00 PM
+    # El corte para PEDIDOS PARA LLEVAR del ejecutivo es 12:00 PM - 2:45 PM (14.75), 15 min antes
+    # del cierre real del servicio ejecutivo (3:00 PM), para darle a cocina tiempo de preparar y
+    # empacar. El corte de 3:00 PM para RESERVAS (dine-in) se mantiene aparte en el prompt, ya que
+    # ese calculo es sobre una fecha/hora futura y lo sigue haciendo el modelo (ver REGLA CLAVE).
+    ejecutivo_para_llevar_ahora = dia_habil and (12 <= hora_decimal < 14.75)
 
     estado_restaurante = (
         "ABIERTO (dentro del horario de servicio: 12:00 PM a 7:00 PM)"
@@ -447,9 +451,9 @@ def get_system_prompt():
         "CERRADO (fuera del horario de servicio; el horario es todos los dias de 12:00 PM a 7:00 PM)"
     )
     estado_ejecutivo = (
-        "DISPONIBLE ahora mismo (estamos dentro de lunes a viernes, 12:00 PM a 3:00 PM)"
-        if ejecutivo_ahora else
-        "NO DISPONIBLE ahora mismo (el ejecutivo solo se ofrece lunes a viernes, entre 12:00 PM y 3:00 PM; fuera de esa ventana, solo carta regular)"
+        "DISPONIBLE ahora mismo para PARA LLEVAR (estamos dentro de lunes a viernes, 12:00 PM a 2:45 PM)"
+        if ejecutivo_para_llevar_ahora else
+        "NO DISPONIBLE ahora mismo para PARA LLEVAR (el ejecutivo para llevar solo se toma lunes a viernes, entre 12:00 PM y 2:45 PM; fuera de esa ventana, solo carta regular para pedidos inmediatos)"
     )
 
     prompt = SYSTEM_PROMPT_BASE.replace("{fecha_hoy}", fecha_hoy).replace("{hora_actual}", hora_actual)
