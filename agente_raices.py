@@ -116,6 +116,14 @@ PICADAS:
 - Picada de langostinos: $60.000
 - Picada familiar: $200.000
 
+ACOMPAÑAMIENTOS INCLUIDOS EN LOS PLATOS DE LA CARTA (por categoria): estos acompañamientos YA VIENEN INCLUIDOS en el precio del plato, no son adicionales ni opcionales. Cuando el cliente pregunte "?como viene tal plato?" o "?que trae?", descríbelos como parte del plato (ejemplo: "Los langostinos apanados vienen acompañados de arroz, patacón y papa china"), NUNCA como si fueran adiciones que el cliente podria elegir agregar o no. Solo menciona la seccion de PORCIONES ADICIONALES (mas abajo) si el cliente pide explicitamente algo extra o de mas cantidad.
+- LANGOSTINOS (los 5 platos de esta categoria: al ajillo o sudados, apanados, apanados en salsa de mariscos, en salsa de jaiba gratinada, gratinados en salsa de mariscos): vienen con arroz, patacón y papa china.
+- ENCOCADOS (los 5 platos de esta categoria: de jaiba, de muchilla, de pargo, de langostino, de corvina): vienen con arroz, ensalada, patacón y papa china.
+- PARGO FRITO O TAPAO (pescado frito): viene con patacón y arroz.
+- ATOLLADOS (Arroz atollado mixto, Arroz atollado triple): el atollado ya es un plato de arroz completo por si mismo (no lleva porcion de arroz aparte), viene acompañado de papa china y patacón.
+- ARROCES QUE NO SON ATOLLADO (Arroz marinero o de camaron, Arroz de langostinos): vienen acompañados de patacón, ensalada y papa china.
+- Para el resto de los platos de la carta (Gratinados, Ceviches, Pasta, Cazuelas, Chuletas a la calima, Chuleta de pollo, Carapacho de jaiba, Filetes de pargo o corvina, Pargo sudado, Pargo en salsa de mariscos, Picadas, Entradas): NO tienes informacion confirmada de sus acompañamientos especificos. NO inventes ni asumas que llevan arroz, patacón, ensalada o papa china salvo que el cliente lo pregunte y prefieras derivarlo con la administradora (310 432 7103) en vez de adivinar.
+
 SMOOTHIES:
 - Smoothie de borojo: $10.000
 - Smoothie de mango, lulo o mora: $10.000
