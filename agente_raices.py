@@ -531,10 +531,18 @@ def _llamar_openrouter(session_id):
     r = requests.post("https://openrouter.ai/api/v1/chat/completions",headers=hdrs,json=body)
     return r.json()["choices"][0]["message"]["content"]
 
-def call_claude(session_id, mensaje):
+def call_claude(session_id, mensaje, guardar_firestore=False):
+    """
+    Procesa un mensaje del cliente y devuelve la respuesta cruda de Claude (con marcadores).
+    'guardar_firestore=True' se usa unicamente para clientes reales de WhatsApp (webhook),
+    de forma que la UI web de pruebas (/chat y /audio) NO ensucie el panel de conversaciones
+    del dashboard con mensajes de prueba.
+    """
     if session_id not in conversaciones:
         conversaciones[session_id] = []
     conversaciones[session_id].append({"role":"user","content":mensaje})
+    if guardar_firestore:
+        firestore_db.guardar_mensaje(session_id, "user", mensaje)
 
     txt = _llamar_openrouter(session_id)
 
@@ -556,6 +564,8 @@ def call_claude(session_id, mensaje):
 
     clean = limpiar_marcadores(txt)
     conversaciones[session_id].append({"role":"assistant","content":clean})
+    if guardar_firestore:
+        firestore_db.guardar_mensaje(session_id, "assistant", clean)
 
     pedido = extraer_pedido(txt)
     if pedido:
@@ -826,7 +836,15 @@ def wh_recv():
                 txt = ("[El cliente envio una imagen (posiblemente un comprobante de pago) pero no se pudo "
                        "descargar. Pidele que confirme por escrito el monto transferido.]")
         else: wa_txt(num,"Solo entiendo texto, notas de voz e imagenes."); return jsonify({"ok":True}),200
-        wa_send(num, txt, call_claude(num,txt))
+
+        # Si desde el dashboard se pauso el bot para este numero (Hernan tomo control manual
+        # de la conversacion), guardamos el mensaje del cliente para que se vea en el panel,
+        # pero el bot NO responde automaticamente.
+        if not firestore_db.esta_bot_activo(num):
+            firestore_db.guardar_mensaje(num, "user", txt)
+            return jsonify({"ok":True}),200
+
+        wa_send(num, txt, call_claude(num, txt, guardar_firestore=True))
         return jsonify({"ok":True}),200
     except Exception as e: print("WH error:",e); return jsonify({"error":str(e)}),500
 
