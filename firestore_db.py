@@ -3,7 +3,9 @@
 FIRESTORE_DB.PY - Modulo de integracion con Firebase Firestore
 Reemplaza el registro en Google Sheets para Raices.
 Maneja: guardar pedidos/reservas, consultar y actualizar disponibilidad
-de mesas por franja horaria, y cambiar estados desde el dashboard.
+de mesas por franja horaria, cambiar estados desde el dashboard, y
+ahora tambien: historial de conversaciones de WhatsApp + control de
+pausa del bot por numero (panel de conversaciones en vivo).
 ================================================================
 """
 import os
@@ -314,4 +316,120 @@ def listar_pedidos(limite=100):
         return resultado
     except Exception as e:
         print("Error listando pedidos:", e)
+        return []
+
+
+# ----------------------------------------------------------------
+# Conversaciones (historial de chat en vivo + control de pausa del bot)
+# ----------------------------------------------------------------
+
+def guardar_mensaje(numero, rol, texto):
+    """Guarda un mensaje de conversacion con un numero de WhatsApp real.
+    rol: 'user' (cliente), 'assistant' (bot), o 'agente_humano' (Hernan escribiendo manual).
+    Actualiza tambien el documento resumen (ultimo mensaje, timestamp) para la lista del dashboard."""
+    firestore_db_client = db()
+    if firestore_db_client is None:
+        return
+    try:
+        ref_conv = firestore_db_client.collection("conversaciones").document(numero)
+        ref_conv.set({
+            "ultimo_mensaje": texto,
+            "ultimo_mensaje_rol": rol,
+            "ultimo_mensaje_ts": firestore.SERVER_TIMESTAMP,
+        }, merge=True)
+        ref_conv.collection("mensajes").document().set({
+            "rol": rol,
+            "texto": texto,
+            "timestamp": firestore.SERVER_TIMESTAMP,
+        })
+    except Exception as e:
+        print("Error guardando mensaje de conversacion:", e)
+
+
+def esta_bot_activo(numero):
+    """True si el bot debe responder automaticamente a este numero.
+    Por defecto (documento nuevo o campo ausente) el bot esta activo."""
+    firestore_db_client = db()
+    if firestore_db_client is None:
+        return True
+    try:
+        doc = firestore_db_client.collection("conversaciones").document(numero).get()
+        if not doc.exists:
+            return True
+        return doc.to_dict().get("bot_activo", True)
+    except Exception as e:
+        print("Error consultando bot_activo:", e)
+        return True
+
+
+def set_bot_activo(numero, activo):
+    """Pausa (False) o reactiva (True) las respuestas automaticas del bot para un numero."""
+    firestore_db_client = db()
+    if firestore_db_client is None:
+        return False
+    try:
+        firestore_db_client.collection("conversaciones").document(numero).set(
+            {"bot_activo": activo}, merge=True
+        )
+        return True
+    except Exception as e:
+        print("Error cambiando bot_activo:", e)
+        return False
+
+
+def listar_conversaciones(limite=200):
+    """Lista de conversaciones (una por numero), ordenadas por mensaje mas reciente."""
+    firestore_db_client = db()
+    if firestore_db_client is None:
+        return []
+    try:
+        docs = (
+            firestore_db_client.collection("conversaciones")
+            .order_by("ultimo_mensaje_ts", direction=firestore.Query.DESCENDING)
+            .limit(limite)
+            .stream()
+        )
+        resultado = []
+        for d in docs:
+            item = d.to_dict()
+            item["numero"] = d.id
+            item["bot_activo"] = item.get("bot_activo", True)
+            if item.get("ultimo_mensaje_ts") is not None:
+                try:
+                    item["ultimo_mensaje_ts"] = item["ultimo_mensaje_ts"].isoformat()
+                except Exception:
+                    item["ultimo_mensaje_ts"] = str(item["ultimo_mensaje_ts"])
+            resultado.append(item)
+        return resultado
+    except Exception as e:
+        print("Error listando conversaciones:", e)
+        return []
+
+
+def obtener_mensajes(numero, limite=300):
+    """Historial completo de una conversacion, en orden cronologico."""
+    firestore_db_client = db()
+    if firestore_db_client is None:
+        return []
+    try:
+        docs = (
+            firestore_db_client.collection("conversaciones").document(numero)
+            .collection("mensajes")
+            .order_by("timestamp", direction=firestore.Query.ASCENDING)
+            .limit(limite)
+            .stream()
+        )
+        resultado = []
+        for d in docs:
+            item = d.to_dict()
+            item["id"] = d.id
+            if item.get("timestamp") is not None:
+                try:
+                    item["timestamp"] = item["timestamp"].isoformat()
+                except Exception:
+                    item["timestamp"] = str(item["timestamp"])
+            resultado.append(item)
+        return resultado
+    except Exception as e:
+        print("Error obteniendo mensajes de conversacion:", e)
         return []
