@@ -721,22 +721,52 @@ def wa_send(num, msg_usuario, txt):
 
 def whisper(data, ext="webm"):
     try:
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            print("whisper: falta OPENAI_API_KEY en las variables de entorno de Railway")
+            return None
         from openai import OpenAI
-        oc=OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        oc=OpenAI(api_key=api_key)
         with tempfile.NamedTemporaryFile(suffix="."+ext,delete=False) as f:
             f.write(data); tp=f.name
         with open(tp,"rb") as af:
             tr=oc.audio.transcriptions.create(model="whisper-1",file=af,language="es")
         os.unlink(tp); return tr.text
-    except Exception as e: print("Whisper:",e); return None
+    except Exception as e: print("whisper: fallo transcribiendo audio:", e); return None
 
 def whisper_wa(aid):
+    """Descarga una nota de voz de WhatsApp por su media id y la transcribe con Whisper.
+    A diferencia de la version anterior, aqui SI se registra en los logs de Railway
+    en que paso exacto fallo (token, descarga de metadata, descarga del audio, o Whisper),
+    para poder diagnosticar en vez de fallar en silencio."""
     try:
-        t=os.environ.get("WHATSAPP_TOKEN")
-        h={"Authorization":f"Bearer {t}"}
-        u=requests.get(f"https://graph.facebook.com/v18.0/{aid}",headers=h).json().get("url")
-        return whisper(requests.get(u,headers=h).content,"ogg")
-    except: return None
+        t = os.environ.get("WHATSAPP_TOKEN")
+        if not t:
+            print("whisper_wa: falta WHATSAPP_TOKEN en las variables de entorno")
+            return None
+        h = {"Authorization": f"Bearer {t}"}
+
+        meta_resp = requests.get(f"https://graph.facebook.com/v18.0/{aid}", headers=h)
+        if meta_resp.status_code != 200:
+            print(f"whisper_wa: error obteniendo metadata del audio (status {meta_resp.status_code}): {meta_resp.text}")
+            return None
+        u = meta_resp.json().get("url")
+        if not u:
+            print(f"whisper_wa: la respuesta de metadata no trae 'url': {meta_resp.json()}")
+            return None
+
+        audio_resp = requests.get(u, headers=h)
+        if audio_resp.status_code != 200:
+            print(f"whisper_wa: error descargando el audio (status {audio_resp.status_code}): {audio_resp.text[:200]}")
+            return None
+        if not audio_resp.content:
+            print("whisper_wa: el audio descargado esta vacio")
+            return None
+
+        return whisper(audio_resp.content, "ogg")
+    except Exception as e:
+        print("whisper_wa: excepcion inesperada:", e)
+        return None
 
 
 @app.route("/privacy")
