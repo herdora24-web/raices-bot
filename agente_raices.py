@@ -592,11 +592,19 @@ def call_claude(session_id, mensaje, guardar_firestore=False):
             consulta["fecha"], consulta["hora"], consulta["personas"]
         )
         contexto = _formatear_resultado_disponibilidad(resultado)
-        # Guardamos la respuesta intermedia de Claude (limpia, sin el marcador) en el historial,
-        # solo si tenia texto visible ademas del marcador; si no, evitamos un mensaje vacio.
+        # IMPORTANTE: la API de Anthropic exige alternancia ESTRICTA de roles
+        # (user -> assistant -> user -> assistant...). No se pueden dejar dos mensajes
+        # "user" seguidos. Cuando el marcador ##CONSULTAR_DISPONIBILIDAD## es TODA la
+        # respuesta del modelo (sin texto adicional, tal como indica el prompt), el texto
+        # limpio queda vacio, y si no agregamos igual un turno "assistant" aqui, el
+        # siguiente append de "contexto" (rol "user") queda pegado justo despues del
+        # "user" original -> dos "user" seguidos -> la API de Anthropic rechaza la
+        # llamada con error 400 y el bot se queda sin responder (bug reportado: el bot
+        # se "trababa" justo al confirmar una reserva). Por eso, si no hay texto limpio,
+        # usamos el texto crudo (con el marcador incluido) como turno assistant, para
+        # garantizar la alternancia sin perder informacion del turno real del modelo.
         intermedio_clean = limpiar_marcadores(txt)
-        if intermedio_clean:
-            conversaciones[session_id].append({"role":"assistant","content":intermedio_clean})
+        conversaciones[session_id].append({"role":"assistant","content": intermedio_clean if intermedio_clean else txt})
         conversaciones[session_id].append({"role":"user","content":contexto})
         txt = _llamar_claude(session_id)
 
@@ -885,7 +893,15 @@ def wh_recv():
             firestore_db.guardar_mensaje(num, "user", txt)
             return jsonify({"ok":True}),200
 
-        wa_send(num, txt, call_claude(num, txt, guardar_firestore=True))
+        try:
+            wa_send(num, txt, call_claude(num, txt, guardar_firestore=True))
+        except Exception as e:
+            # Red de seguridad: si la llamada a la API de Claude falla por cualquier motivo
+            # (error de la API, formato de historial invalido, sin credito, etc.), el cliente
+            # ya NO se queda en silencio total. Se le avisa y se deja rastro claro en los logs
+            # de Railway con el detalle exacto para diagnosticar.
+            print(f"Error generando respuesta para {num}:", e)
+            wa_txt(num, "Disculpe, tuvimos un inconveniente tecnico momentaneo. Por favor escribanos de nuevo en unos minutos, o contacte a nuestra administradora al 310 432 7103.")
         return jsonify({"ok":True}),200
     except Exception as e: print("WH error:",e); return jsonify({"error":str(e)}),500
 
