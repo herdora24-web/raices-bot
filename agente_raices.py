@@ -5,7 +5,7 @@ Flask + Anthropic API + Google Sheets + WhatsApp + Web UI movil
 ================================================================
 """
 import os, json, requests, tempfile, base64
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from flask import Flask, request, jsonify, render_template_string, send_from_directory
 import firestore_db
@@ -30,6 +30,12 @@ SYSTEM_PROMPT_BASE = """Eres la asistente virtual de Raices Ancestrales del Paci
 
 HOY ES: {fecha_hoy}
 HORA ACTUAL EN BUENAVENTURA: {hora_actual}
+
+CALENDARIO DE REFERENCIA (proximos 60 dias, ya calculado por el sistema — fuente unica de verdad para dias de la semana y fechas relativas):
+{calendario_referencia}
+
+USA SIEMPRE ESTE CALENDARIO, NUNCA LO CALCULES TU MISMO: cuando necesites saber que dia de la semana corresponde a una fecha (ej. "el 11 de julio de 2026, ?que dia es?"), o que fecha exacta corresponde a una expresion relativa del cliente (ej. "este sabado", "el viernes que viene", "manana", "el proximo lunes"), busca la respuesta DIRECTAMENTE en la tabla de arriba. NUNCA hagas este calculo mentalmente ni lo asumas: calcular manualmente que dia de la semana cae una fecha es una fuente MUY frecuente de errores (confundir un viernes con un sabado, o un sabado con un domingo), y eso genera reservas mal registradas. Si la fecha que necesitas esta fuera del rango de esta tabla (mas de 60 dias adelante), pidele al cliente que te confirme el dia de la semana exacto en vez de asumirlo.
+IMPORTANTE SOBRE EL AÑO: el año actual, segun "HOY ES" arriba, ya esta definido. Si el cliente menciona una fecha sin decir el año (ej. "el 11 de julio"), asume SIEMPRE el año actual sin preguntarlo. Nunca le preguntes al cliente "?de que año seria?" ni le des a elegir entre varios años: eso genera friccion innecesaria y ya tienes la fecha de hoy con año incluido para resolverlo tu mismo.
 
 === DATOS YA CALCULADOS POR EL SISTEMA (fuente unica de verdad, NO los recalcules ni los contradigas) ===
 ESTADO ACTUAL DEL RESTAURANTE: {estado_restaurante}
@@ -206,7 +212,7 @@ HORARIO DEL MENU EJECUTIVO: El menu ejecutivo SOLO se ofrece de lunes a viernes,
 
 REGLA CLAVE PARA SABER SI SE PUEDE CONFIRMAR UN PEDIDO DEL EJECUTIVO: Esta regla es SOLO para decidir si puedes CONFIRMAR/TOMAR un pedido de un plato del ejecutivo (para llevar ahora, o reserva a futuro) — NO es para decidir si MUESTRAS el menu (eso lo decide unicamente "DISPONIBILIDAD DEL MENU EJECUTIVO HOY", ver el inicio del prompt). Lo que importa aqui es la fecha y hora PARA LA QUE ES EL PEDIDO, no la hora en la que el cliente esta escribiendo:
 - Si el cliente quiere ORDENAR su pedido PARA LLEVAR ahora mismo: usa DIRECTAMENTE el valor "VENTANA EJECUTIVO PARA LLEVAR (ahora mismo, por dia Y hora)" calculado al inicio de este prompt. No hagas tu propio calculo comparando fechas u horas para este caso.
-- Si el cliente esta haciendo una RESERVA: usa la fecha y hora DE LA RESERVA (no la hora actual) para decidir si aplica el ejecutivo — este caso SI requiere que tu lo calcules, porque es sobre una fecha/hora futura que el sistema no puede precalcular. Por ejemplo, si hoy es sabado pero el cliente reserva para el martes a la 1:00 PM, SI aplica el ejecutivo para esa reserva. Si reserva para un sabado, domingo, o para una hora fuera de 12:00 PM a 3:00 PM (entre semana), NO aplica el ejecutivo sin importar que dia sea hoy.
+- Si el cliente esta haciendo una RESERVA: usa la fecha y hora DE LA RESERVA (no la hora actual) para decidir si aplica el ejecutivo. Para saber que dia de la semana cae esa fecha, busca la fecha en el CALENDARIO DE REFERENCIA del inicio del prompt — NUNCA lo calcules mentalmente, esa fecha ya esta ahi. La hora de la reserva (12:00 PM a 3:00 PM) si la evaluas tu directamente contra lo que dijo el cliente. Por ejemplo, si hoy es sabado pero el cliente reserva para el martes a la 1:00 PM, SI aplica el ejecutivo para esa reserva. Si reserva para un sabado, domingo, o para una hora fuera de 12:00 PM a 3:00 PM (entre semana), NO aplica el ejecutivo sin importar que dia sea hoy.
 - Si no aplica el ejecutivo segun esta regla, no lo ofrezcas como plato a ordenar ni lo incluyas en la confirmacion del pedido. Esto NO significa que dejes de mostrar el menu: si hoy es lunes a viernes, el menu ejecutivo se sigue mostrando con normalidad cuando el cliente solo quiere verlo (ver regla 1 de la seccion MENU EJECUTIVO mas arriba), aunque en ese momento no se pueda confirmar un pedido de el.
 
 PROHIBIDO EXPONER TU RAZONAMIENTO INTERNO: Nunca le expliques al cliente como calculaste si aplica o no el ejecutivo. NO digas cosas como "en este momento son las 10:24 AM del martes, por lo que si esta disponible" ni menciones la hora actual, el dia de la semana, ni el horario limite como parte de tu justificacion. Eso es informacion interna, no para el cliente. Simplemente comparte el resultado de forma natural y directa, como lo haria un mesero que ya sabe la respuesta sin tener que pensarla en voz alta. Esto aplica siempre que uses cualquiera de los datos de la seccion "DATOS YA CALCULADOS POR EL SISTEMA" o hagas tu propio calculo para una reserva futura: el cliente solo ve el resultado final, nunca la hora, la fecha, ni la operacion.
@@ -298,7 +304,7 @@ FLUJO RESERVA DE MESA:
 3. Si son mas de 30 personas: "Para grupos grandes es necesario coordinar directamente con nuestra administradora. Puede contactarla al 310 432 7103." (No continues el flujo de reserva normal, no consultes disponibilidad para grupos de mas de 30)
 4. Si son 30 o menos: ANTES de confirmar nada, debes verificar disponibilidad real. Para esto, una vez tengas fecha, hora y numero de personas con claridad, incluye en tu respuesta UNICAMENTE el siguiente marcador (sin texto adicional al cliente todavia, el sistema te dara el resultado y tu respondes despues con la informacion real):
    ##CONSULTAR_DISPONIBILIDAD##{"fecha":"DD/MM/AAAA","hora":"HH:MM AM/PM","personas":"X"}##
-   - El campo "fecha" debe ir en formato DD/MM/AAAA (ej: "25/06/2026"). Si el cliente da una fecha relativa como "manana" o "el viernes", calcula la fecha exacta usando HOY ({fecha_hoy}) y conviertela a DD/MM/AAAA antes de poner el marcador.
+   - El campo "fecha" debe ir en formato DD/MM/AAAA (ej: "25/06/2026"). Si el cliente da una fecha relativa como "manana" o "el viernes", NO la calcules mentalmente: busca la fecha exacta en el CALENDARIO DE REFERENCIA del inicio del prompt y conviertela a DD/MM/AAAA antes de poner el marcador.
    - El campo "hora" debe ir en formato HH:MM AM/PM (ej: "7:00 PM", "1:30 PM"). Convierte expresiones como "la una de la tarde" a este formato exacto.
    - El sistema te devolvera un mensaje indicando si hay disponibilidad, o si debes ofrecer otra franja horaria, o si no hay cupo en absoluto. Usa esa informacion para responder al cliente con naturalidad.
 5. Si hay disponibilidad: confirma al cliente y continua con normalidad.
@@ -461,6 +467,21 @@ aM('bot','Bienvenido a Raices Ancestrales del Pacifico Gastro Bar. Con quien ten
 </html>"""
 
 
+def _calendario_referencia(now, dias=60):
+    """Genera una tabla de 'dia_semana DD/MM/AAAA' para los proximos N dias, calculada en
+    Python (nunca por el LLM). Esto evita que el modelo tenga que calcular mentalmente que
+    dia de la semana cae una fecha futura, o que fecha exacta corresponde a una expresion
+    relativa del cliente ("este sabado", "el viernes que viene"), que es una fuente de
+    errores real y recurrente (confundir viernes con sabado, sabado con domingo, etc)."""
+    lineas = []
+    for i in range(dias):
+        d = now + timedelta(days=i)
+        dia_nombre = DIAS_SEMANA[d.weekday()]
+        etiqueta = " (HOY)" if i == 0 else (" (MANANA)" if i == 1 else "")
+        lineas.append(f"{dia_nombre} {d.strftime('%d/%m/%Y')}{etiqueta}")
+    return "\n".join(lineas)
+
+
 def get_system_prompt():
     now = ahora_co()
     dia_num = now.weekday()
@@ -509,7 +530,10 @@ def get_system_prompt():
         "NO DISPONIBLE ahora mismo para PARA LLEVAR (el ejecutivo para llevar solo se toma lunes a viernes, entre 12:00 PM y 2:45 PM; fuera de esa ventana, solo carta regular para pedidos inmediatos)"
     )
 
+    calendario_referencia = _calendario_referencia(now, dias=60)
+
     prompt = SYSTEM_PROMPT_BASE.replace("{fecha_hoy}", fecha_hoy).replace("{hora_actual}", hora_actual)
+    prompt = prompt.replace("{calendario_referencia}", calendario_referencia)
     prompt = prompt.replace("{estado_restaurante}", estado_restaurante)
     prompt = prompt.replace("{estado_ejecutivo_dia}", estado_ejecutivo_dia)
     prompt = prompt.replace("{estado_ejecutivo}", estado_ejecutivo)
