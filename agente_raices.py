@@ -1,7 +1,7 @@
 """
 ================================================================
 AGENTE RAICES - ANCESTRALES DEL PACIFICO GASTRO BAR
-Flask + OpenRouter + Google Sheets + WhatsApp + Web UI movil
+Flask + Anthropic API + Google Sheets + WhatsApp + Web UI movil
 ================================================================
 """
 import os, json, requests, tempfile, base64
@@ -544,22 +544,30 @@ def extraer_consulta_disponibilidad(txt):
         except: pass
     return None
 
-def _llamar_openrouter(session_id):
-    """Llama a OpenRouter con el historial actual de la sesion. No modifica el historial."""
+def _llamar_claude(session_id):
+    """Llama directamente a la API de Anthropic (Claude) con el historial actual de la sesion.
+    No modifica el historial. Antes esto pasaba por OpenRouter; ahora usa la clave de
+    Anthropic directamente (variable de entorno ANTHROPIC_API_KEY en Railway)."""
     h = conversaciones[session_id][-20:]
     hdrs = {
-        "Authorization":"Bearer "+os.environ.get("OPENROUTER_API_KEY",""),
-        "Content-Type":"application/json",
-        "HTTP-Referer":"https://raices-bot.com",
-        "X-Title":"Raices Gastro Bar Bot"
+        "x-api-key": os.environ.get("ANTHROPIC_API_KEY", ""),
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
     }
     body = {
-        "model":"anthropic/claude-sonnet-4-5",
-        "max_tokens":1200,
-        "messages":[{"role":"system","content":get_system_prompt()}]+h
+        "model": "claude-sonnet-4-5",
+        "max_tokens": 1200,
+        "system": get_system_prompt(),
+        "messages": h,
     }
-    r = requests.post("https://openrouter.ai/api/v1/chat/completions",headers=hdrs,json=body)
-    return r.json()["choices"][0]["message"]["content"]
+    r = requests.post("https://api.anthropic.com/v1/messages", headers=hdrs, json=body, timeout=60)
+    data = r.json()
+    if "content" not in data:
+        # Error de la API (ej. clave invalida, sin credito, rate limit). Lo dejamos en los
+        # logs de Railway con el detalle completo para poder diagnosticarlo rapido.
+        print("Error llamando a la API de Anthropic:", data)
+        raise RuntimeError(f"Anthropic API error: {data}")
+    return "".join(bloque.get("text", "") for bloque in data["content"] if bloque.get("type") == "text")
 
 def call_claude(session_id, mensaje, guardar_firestore=False):
     """
@@ -574,7 +582,7 @@ def call_claude(session_id, mensaje, guardar_firestore=False):
     if guardar_firestore:
         firestore_db.guardar_mensaje(session_id, "user", mensaje)
 
-    txt = _llamar_openrouter(session_id)
+    txt = _llamar_claude(session_id)
 
     # Si Claude pidio consultar disponibilidad, resolvemos la consulta y le devolvemos
     # el resultado como contexto, para que de la respuesta final al cliente.
@@ -590,7 +598,7 @@ def call_claude(session_id, mensaje, guardar_firestore=False):
         if intermedio_clean:
             conversaciones[session_id].append({"role":"assistant","content":intermedio_clean})
         conversaciones[session_id].append({"role":"user","content":contexto})
-        txt = _llamar_openrouter(session_id)
+        txt = _llamar_claude(session_id)
 
     clean = limpiar_marcadores(txt)
     conversaciones[session_id].append({"role":"assistant","content":clean})
@@ -661,16 +669,15 @@ def extraer_imagenes(txt):
 
 
 def leer_monto_comprobante(image_bytes, media_type="image/jpeg"):
-    """Usa Claude Vision (via OpenRouter) para leer el monto de un comprobante de pago
+    """Usa Claude Vision (API directa de Anthropic) para leer el monto de un comprobante de pago
     (Nequi, transferencia u otro medio digital colombiano) a partir de la imagen recibida.
     Devuelve un float con el monto en pesos colombianos, o None si no se pudo leer con certeza."""
     try:
         b64 = base64.b64encode(image_bytes).decode("utf-8")
         hdrs = {
-            "Authorization":"Bearer "+os.environ.get("OPENROUTER_API_KEY",""),
-            "Content-Type":"application/json",
-            "HTTP-Referer":"https://raices-bot.com",
-            "X-Title":"Raices Gastro Bar Bot"
+            "x-api-key": os.environ.get("ANTHROPIC_API_KEY", ""),
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json",
         }
         prompt_vision = (
             "Esta imagen deberia ser un comprobante de pago (Nequi, transferencia bancaria u otro medio "
@@ -681,21 +688,25 @@ def leer_monto_comprobante(image_bytes, media_type="image/jpeg"):
             "o no puedes leer el monto con certeza, responde {\"monto\": null}."
         )
         body = {
-            "model":"anthropic/claude-sonnet-4-5",
-            "max_tokens":200,
-            "messages":[{
-                "role":"user",
-                "content":[
-                    {"type":"text","text":prompt_vision},
-                    {"type":"image_url","image_url":{"url":f"data:{media_type};base64,{b64}"}}
+            "model": "claude-sonnet-4-5",
+            "max_tokens": 200,
+            "messages": [{
+                "role": "user",
+                "content": [
+                    {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}},
+                    {"type": "text", "text": prompt_vision},
                 ]
             }]
         }
-        r = requests.post("https://openrouter.ai/api/v1/chat/completions",headers=hdrs,json=body,timeout=30)
-        texto = r.json()["choices"][0]["message"]["content"].strip()
+        r = requests.post("https://api.anthropic.com/v1/messages", headers=hdrs, json=body, timeout=30)
+        data = r.json()
+        if "content" not in data:
+            print("Error leyendo comprobante (respuesta de Anthropic sin 'content'):", data)
+            return None
+        texto = "".join(b.get("text", "") for b in data["content"] if b.get("type") == "text").strip()
         texto = texto.replace("```json","").replace("```","").strip()
-        data = json.loads(texto)
-        monto = data.get("monto")
+        data_json = json.loads(texto)
+        monto = data_json.get("monto")
         return float(monto) if monto is not None else None
     except Exception as e:
         print("Error leyendo comprobante:", e)
