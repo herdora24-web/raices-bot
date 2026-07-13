@@ -28,7 +28,8 @@ def _hoy_co():
 CAPACIDAD_MAXIMA = 60
 
 FRANJAS = {
-    "almuerzo": {"inicio": "12:00", "fin": "15:00", "label": "almuerzo (12:00 PM - 3:00 PM)"},
+    "almuerzo": {"inicio": "12:00", "fin": "14:59", "label": "almuerzo (12:00 PM - 3:00 PM)"},
+    "tarde":    {"inicio": "15:00", "fin": "17:59", "label": "tarde (3:00 PM - 6:00 PM)"},
     "cena":     {"inicio": "18:00", "fin": "22:00", "label": "cena (6:00 PM - 10:00 PM)"},
 }
 
@@ -72,7 +73,7 @@ def db():
 def determinar_franja(hora_str):
     """
     Dado un string de hora tipo '13:30', '1:30 PM', '19:00', etc,
-    determina si cae en franja 'almuerzo', 'cena', o None (fuera de horario).
+    determina si cae en franja 'almuerzo', 'tarde', 'cena', o None (fuera de horario).
     Devuelve None si no se puede interpretar la hora.
     """
     hora_norm = _normalizar_hora(hora_str)
@@ -124,10 +125,10 @@ def consultar_disponibilidad(fecha_str, hora_str, personas):
     Devuelve un dict:
       {
         "ok": True/False,                  -> si se pudo interpretar fecha/hora
-        "franja": "almuerzo"/"cena"/None,
+        "franja": "almuerzo"/"tarde"/"cena"/None,
         "disponible": True/False,          -> si hay cupo para 'personas' adicionales
         "cupo_restante": int,
-        "alternativa": "almuerzo"/"cena"/None  -> otra franja con cupo el mismo dia, si la solicitada esta llena
+        "alternativa": "almuerzo"/"tarde"/"cena"/None  -> otra franja con cupo el mismo dia, si la solicitada esta llena
       }
     """
     fecha = _normalizar_fecha(fecha_str)
@@ -148,10 +149,15 @@ def consultar_disponibilidad(fecha_str, hora_str, personas):
 
     alternativa = None
     if not disponible:
-        otra_franja = "cena" if franja == "almuerzo" else "almuerzo"
-        ocupacion_otra = _obtener_ocupacion(firestore_db, fecha, otra_franja)
-        if (CAPACIDAD_MAXIMA - ocupacion_otra) >= personas:
-            alternativa = otra_franja
+        # Con 3 franjas (almuerzo/tarde/cena) hay que recorrer las otras dos,
+        # no solo alternar entre dos como antes.
+        for otra_franja in FRANJAS:
+            if otra_franja == franja:
+                continue
+            ocupacion_otra = _obtener_ocupacion(firestore_db, fecha, otra_franja)
+            if (CAPACIDAD_MAXIMA - ocupacion_otra) >= personas:
+                alternativa = otra_franja
+                break
 
     return {
         "ok": True,
