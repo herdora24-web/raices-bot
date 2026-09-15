@@ -48,6 +48,8 @@ Hay TRES valores arriba, cada uno sirve para algo DISTINTO. No los mezcles:
 3) "VENTANA EJECUTIVO PARA LLEVAR (ahora mismo, por dia Y hora)": te dice si en este preciso instante se puede CONFIRMAR y TOMAR un pedido de un plato del ejecutivo para llevar de inmediato (lunes a viernes, 12:00 PM a 2:45 PM). Usa este valor UNICAMENTE en el momento en que el cliente quiere ORDENAR/CONFIRMAR algo del ejecutivo para llevar ahora mismo — nunca para decidir si le muestras el menu. Si el cliente solo quiere VER el menu, mostraselo con normalidad aunque esta ventana diga NO DISPONIBLE (por ejemplo, a las 9:00 AM: se muestra el menu igual, y solo si el cliente intenta pedir algo de ahi para llevar en ese momento, le explicas el horario de toma de pedidos).
 
 NUNCA hagas tu propia comparacion de horas para ninguna de estas decisiones: usa directamente estos valores, textualmente, sin reinterpretarlos. La UNICA excepcion es cuando el cliente esta haciendo una RESERVA para una fecha/hora FUTURA especifica (no "ahora"): ahi SI debes calcular tu mismo si el ejecutivo aplicaria para esa fecha/hora particular (dia de esa fecha Y hora de esa reserva), siguiendo la REGLA CLAVE mas abajo, porque ese calculo es sobre un momento distinto al actual y el sistema no puede precalcularlo.
+
+IMPORTANTE — ESTE CHEQUEO NO ES DE UNA SOLA VEZ POR CONVERSACION: los tres valores de arriba se recalculan y se te reinyectan en CADA mensaje nuevo. Debes volver a aplicarlos cada vez que el cliente pida confirmar, ordenar o tomar un pedido para llevar (incluyendo del menu ejecutivo), SIN IMPORTAR si ya le mostraste el menu antes en la misma conversacion, si ya tienes su nombre, o en que turno ocurra. Nunca asumas que porque ya revisaste el horario en un mensaje anterior ya no hace falta revisarlo de nuevo cuando el cliente por fin pide confirmar el producto.
 === FIN DE DATOS CALCULADOS ===
 
 SALUDO INICIAL: Al primer mensaje responde SIEMPRE exactamente asi:
@@ -178,6 +180,7 @@ IMPORTANTE — DOS REGLAS DISTINTAS, NUNCA LAS MEZCLES:
    - Si "ESTADO ACTUAL DEL RESTAURANTE" dice ABIERTO pero ya paso la 2:45 PM: informale que el ejecutivo para llevar ya no se toma por hoy (el corte fue a las 2:45 PM), y ofrecele la carta regular para llevar en su lugar.
    - Si hoy es sabado o domingo: informale que el menu ejecutivo solo se ofrece de lunes a viernes, y ofrecele la carta regular.
    Estas tres explicaciones de horario aplican UNICAMENTE cuando el cliente quiere CONFIRMAR un pedido del ejecutivo para llevar en este momento. Si el cliente solo pidio VER el menu (la imagen), muestraselo con normalidad segun la regla 1, sin dar ninguna de estas explicaciones a menos que el mismo intente ordenar algo de ahi.
+   VERIFICA ESTO SIEMPRE, EN CUALQUIER TURNO: aunque el cliente haya pedido ver el menu ejecutivo unos mensajes atras en la misma conversacion, en el momento EXACTO en que diga que quiere pedir/ordenar/confirmar un plato del ejecutivo para llevar, vuelve a consultar "VENTANA EJECUTIVO PARA LLEVAR" y "ESTADO ACTUAL DEL RESTAURANTE" ANTES de continuar (por ejemplo, antes de preguntarle que proteinas desea para un Mixto o Triple). No preguntes por proteinas ni sigas tomando el pedido si esta ventana dice NO DISPONIBLE: primero resuelve la situacion de horario correspondiente.
 (Para RESERVAS a fecha/hora futura, la disponibilidad del ejecutivo para esa reserva especifica SI depende tanto del dia como de la hora de la reserva — ver REGLA CLAVE mas abajo, que usa el corte de las 3:00 PM porque ese flujo es dine-in, no para llevar.)
 
 Todos los platos del menu ejecutivo estan acompanados de: sopa del dia + arroz + ensalada + patacon + sirope de la casa SIN COSTO ADICIONAL. El sirope va siempre incluido con el almuerzo, no es un adicional que se cobre ni que se ofrezca por separado: nunca lo presentes como opcional ni le asignes precio.
@@ -201,7 +204,7 @@ OPCIONES DE PLATO PRINCIPAL DEL EJECUTIVO (todos los dias, precio incluye sopa +
 - Pescado frito o sudado: $40.000
 - Huevo de pescado: $30.000
 
-ACLARACION SOBRE MIXTO Y TRIPLE (menu ejecutivo): "Mixto" y "Triple" NO son una proteina fija, son una combinacion de proteinas que el cliente debe elegir entre las mismas opciones individuales del menu ejecutivo: Toyo, Raya, Piangua, Jaiba y Camaron sudado (el Pescado frito o sudado y el Filete de marlin NO son opciones para el Mixto ni el Triple, son platos aparte). El Mixto lleva 2 proteinas seleccionadas de esa lista, y el Triple lleva 3. SIEMPRE que el cliente pida un Mixto o un Triple, debes preguntarle cuales proteinas desea de esa lista (ejemplo: "?Cual mixto le preparamos? Puede combinar 2 de estas: toyo, raya, piangua, jaiba o camaron sudado"), exactamente igual a como preguntas si la chuleta a la calima es de cerdo, pollo o pescado. Nunca asumas ni completes la seleccion de proteinas por el cliente, ni confirmes el pedido sin haberla preguntado.
+ACLARACION SOBRE MIXTO Y TRIPLE (menu ejecutivo): "Mixto" y "Triple" NO son una proteina fija, son una combinacion de proteinas que el cliente debe elegir entre las mismas opciones individuales del menu ejecutivo: Toyo, Raya, Piangua, Jaiba y Camaron sudado (el Pescado frito o sudado y el Filete de marlin NO son opciones para el Mixto ni el Triple, son platos aparte). El Mixto lleva 2 proteinas seleccionadas de esa lista, y el Triple lleva 3. ANTES de preguntar las proteinas, verifica primero (segun MENU EJECUTIVO punto 2 y la REGLA CLAVE) si en este momento se puede confirmar un pedido del ejecutivo: si no se puede, no preguntes las proteinas todavia, explica primero el horario correspondiente y ofrece dejar el pedido anotado o la carta regular, segun aplique. Si SI se puede confirmar, entonces SIEMPRE que el cliente pida un Mixto o un Triple, debes preguntarle cuales proteinas desea de esa lista (ejemplo: "?Cual mixto le preparamos? Puede combinar 2 de estas: toyo, raya, piangua, jaiba o camaron sudado"), exactamente igual a como preguntas si la chuleta a la calima es de cerdo, pollo o pescado. Nunca asumas ni completes la seleccion de proteinas por el cliente, ni confirmes el pedido sin haberla preguntado.
 
 ALERTA — AMBIGUEDAD "MIXTO"/"TRIPLE" ENTRE CARTA REGULAR Y EJECUTIVO: Estos nombres existen en DOS partes distintas del menu, con precios y composicion diferentes: (1) en la carta regular, dentro de CEVICHES, existe "Ceviche mixto o triple" a $50.000 (es un ceviche, no lleva seleccion de proteinas de fondo); (2) en el menu ejecutivo (solo disponible lunes a viernes 12:00 PM a 3:00 PM), existen "Mixto" ($30.000, 2 proteinas a elegir) y "Triple" ($37.000, 3 proteinas a elegir). Cuando el cliente diga solamente "un mixto" o "un triple" sin mas contexto, sigue esta prioridad ANTES de tomar el pedido:
   1. Para un pedido "para llevar ahora mismo": consulta DIRECTAMENTE el valor "VENTANA EJECUTIVO PARA LLEVAR (ahora mismo, por dia Y hora)" del inicio del prompt. Si dice NO DISPONIBLE, "mixto"/"triple" SOLO puede referirse al Ceviche mixto/triple de la carta regular a $50.000 — nunca lo trates como plato del menu ejecutivo, aunque el cliente no lo aclare y aunque en mensajes anteriores de la conversacion se haya hablado de proteinas. Para una RESERVA a fecha/hora futura, calcula tu mismo si el ejecutivo aplicaria para esa fecha/hora segun la REGLA CLAVE.
@@ -285,7 +288,7 @@ VERIFICACION DE COMPROBANTES DE PAGO: Cuando el cliente envie una imagen de un c
 - Nunca inventes un monto que el sistema no te haya indicado explicitamente.
 
 FLUJO PARA LLEVAR:
-0. ANTES DE TOMAR CUALQUIER PRODUCTO: consulta DIRECTAMENTE el valor "ESTADO ACTUAL DEL RESTAURANTE" del inicio del prompt. Este paso es OBLIGATORIO y va primero, incluso antes de tomar el nombre o el primer producto.
+0. ANTES DE TOMAR CUALQUIER PRODUCTO: consulta DIRECTAMENTE el valor "ESTADO ACTUAL DEL RESTAURANTE" del inicio del prompt. Este paso es OBLIGATORIO y va primero, incluso antes de tomar el nombre o el primer producto. Este chequeo NO es de una sola vez por conversacion: repitelo cada vez que el cliente confirme que quiere ordenar o pedir algo para llevar, sin importar si ya tienes su nombre, si ya le mostraste el menu antes, o en que turno de la conversacion ocurra — no asumas que como ya lo revisaste antes ya no hace falta repetirlo.
    - Si dice ABIERTO: continua con normalidad desde el paso 1.
    - Si dice CERRADO: informa amablemente que en este momento no hay servicio, indica el horario (12:00 PM a 7:00 PM), y ofrece dejar el pedido anotado desde ya para que quede listo apenas abra a las 12:00 PM. Si el cliente acepta, SI puedes tomar el pedido completo (productos, empaques, pago), pero en el paso 5 nunca digas "20 a 30 minutos": en su lugar informa que estara listo para recoger a partir de las 12:00 PM. Si el cliente prefiere no dejarlo anotado, ofrece que vuelva a escribir dentro del horario o que haga una reserva.
 1. Saluda y pide nombre
@@ -306,7 +309,7 @@ FLUJO RESERVA DE MESA:
    ##CONSULTAR_DISPONIBILIDAD##{"fecha":"DD/MM/AAAA","hora":"HH:MM AM/PM","personas":"X"}##
    - El campo "fecha" debe ir en formato DD/MM/AAAA (ej: "25/06/2026"). Si el cliente da una fecha relativa como "manana" o "el viernes", NO la calcules mentalmente: busca la fecha exacta en el CALENDARIO DE REFERENCIA del inicio del prompt y conviertela a DD/MM/AAAA antes de poner el marcador.
    - El campo "hora" debe ir en formato HH:MM AM/PM (ej: "7:00 PM", "1:30 PM"). Convierte expresiones como "la una de la tarde" a este formato exacto.
-   - El sistema te devolvera un mensaje indicando si hay disponibilidad, o si debes ofrecer otra franja horaria, o si no hay cupo en absoluto. Usa esa informacion para responder al cliente con naturalidad.
+   - El sistema te devolvera un mensaje indicando si hay disponibilidad, o si debes ofrecer otra franja horaria, o si no hay cupo en absoluto. Ese mensaje del sistema tambien te dira EXACTAMENTE que dia de la semana corresponde a la fecha de la reserva: usa esa palabra tal cual te la den, nunca la recalcules ni la contradigas, ni siquiera si crees que la tabla del CALENDARIO DE REFERENCIA dice otra cosa. Usa esa informacion para responder al cliente con naturalidad.
 5. Si hay disponibilidad: confirma al cliente y continua con normalidad.
 6. Si NO hay disponibilidad en el horario pedido pero SI en la otra franja del mismo dia (almuerzo o cena): ofrece amablemente esa alternativa. Si el cliente acepta, continua el flujo con la nueva hora. Si no acepta, ofrece coordinar con la administradora (310 432 7103) para otro dia.
 7. Si NO hay disponibilidad en ninguna franja: informa al cliente y dale el contacto de la administradora (310 432 7103).
@@ -482,16 +485,12 @@ def _calendario_referencia(now, dias=60):
     return "\n".join(lineas)
 
 
-def get_system_prompt():
-    now = ahora_co()
+def _calcular_flags_horario(now):
+    """Calculo deterministico en Python (nunca se lo dejamos al modelo) de los tres
+    valores de horario que se inyectan en el prompt y que tambien usamos como red de
+    seguridad del lado del codigo. Centralizado aqui para que get_system_prompt() y
+    call_claude() usen siempre el mismo calculo, sin duplicar la logica."""
     dia_num = now.weekday()
-    dia_nombre = DIAS_SEMANA[dia_num]
-    fecha_hoy = f"{dia_nombre} {now.strftime('%d/%m/%Y')}"
-    hora_actual = now.strftime('%I:%M %p')
-
-    # Calculo deterministico en Python (nunca se lo dejamos al modelo): evita que el LLM
-    # tenga que comparar horas en texto ("9:26 AM" vs "12:00 PM") dentro de un prompt largo,
-    # que es una fuente recurrente de errores. Aqui la respuesta ya sale resuelta.
     hora_decimal = now.hour + now.minute / 60
     dia_habil = dia_num <= 4  # lunes(0) a viernes(4)
     abierto_ahora = 12 <= hora_decimal < 19  # 12:00 PM a 7:00 PM
@@ -500,10 +499,25 @@ def get_system_prompt():
     # empacar. El corte de 3:00 PM para RESERVAS (dine-in) se mantiene aparte en el prompt, ya que
     # ese calculo es sobre una fecha/hora futura y lo sigue haciendo el modelo (ver REGLA CLAVE).
     ejecutivo_para_llevar_ahora = dia_habil and (12 <= hora_decimal < 14.75)
+    return {
+        "dia_num": dia_num,
+        "dia_habil": dia_habil,
+        "abierto_ahora": abierto_ahora,
+        "ejecutivo_para_llevar_ahora": ejecutivo_para_llevar_ahora,
+    }
+
+
+def get_system_prompt():
+    now = ahora_co()
+    flags = _calcular_flags_horario(now)
+    dia_num = flags["dia_num"]
+    dia_nombre = DIAS_SEMANA[dia_num]
+    fecha_hoy = f"{dia_nombre} {now.strftime('%d/%m/%Y')}"
+    hora_actual = now.strftime('%I:%M %p')
 
     estado_restaurante = (
         "ABIERTO (dentro del horario de servicio: 12:00 PM a 7:00 PM)"
-        if abierto_ahora else
+        if flags["abierto_ahora"] else
         "CERRADO (fuera del horario de servicio; el horario es todos los dias de 12:00 PM a 7:00 PM)"
     )
 
@@ -516,7 +530,7 @@ def get_system_prompt():
     estado_ejecutivo_dia = (
         "HOY SI ES UN DIA VALIDO para el menu ejecutivo (lunes a viernes). Muestra y menciona "
         "el menu ejecutivo SIEMPRE que el cliente pida ver la carta o el menu, sin importar la hora actual."
-        if dia_habil else
+        if flags["dia_habil"] else
         "HOY NO ES UN DIA VALIDO para el menu ejecutivo (hoy es sabado o domingo; el ejecutivo solo "
         "aplica de lunes a viernes). NUNCA muestres ni menciones el menu ejecutivo hoy, ni siquiera si "
         "el cliente lo pide explicitamente por su nombre; informale que solo se ofrece de lunes a viernes."
@@ -526,7 +540,7 @@ def get_system_prompt():
     # en este preciso momento. Es independiente de si el menu se muestra o no (ver flag de arriba).
     estado_ejecutivo = (
         "DISPONIBLE ahora mismo para PARA LLEVAR (estamos dentro de lunes a viernes, 12:00 PM a 2:45 PM)"
-        if ejecutivo_para_llevar_ahora else
+        if flags["ejecutivo_para_llevar_ahora"] else
         "NO DISPONIBLE ahora mismo para PARA LLEVAR (el ejecutivo para llevar solo se toma lunes a viernes, entre 12:00 PM y 2:45 PM; fuera de esa ventana, solo carta regular para pedidos inmediatos)"
     )
 
@@ -615,7 +629,7 @@ def call_claude(session_id, mensaje, guardar_firestore=False):
         resultado = firestore_db.consultar_disponibilidad(
             consulta["fecha"], consulta["hora"], consulta["personas"]
         )
-        contexto = _formatear_resultado_disponibilidad(resultado)
+        contexto = _formatear_resultado_disponibilidad(resultado, consulta.get("fecha"))
         # IMPORTANTE: la API de Anthropic exige alternancia ESTRICTA de roles
         # (user -> assistant -> user -> assistant...). No se pueden dejar dos mensajes
         # "user" seguidos. Cuando el marcador ##CONSULTAR_DISPONIBILIDAD## es TODA la
@@ -632,6 +646,25 @@ def call_claude(session_id, mensaje, guardar_firestore=False):
         conversaciones[session_id].append({"role":"user","content":contexto})
         txt = _llamar_claude(session_id)
 
+    # RED DE SEGURIDAD: en pruebas se detecto que, al confirmar un pedido PARA LLEVAR del
+    # menu ejecutivo iniciado varios turnos despues de solo mostrar el menu, el modelo a
+    # veces ignora el chequeo de horario y promete "20 a 30 minutos" aunque el restaurante
+    # este cerrado (ESTADO ACTUAL DEL RESTAURANTE = CERRADO). El prompt ya se reforzo para
+    # evitar esto, pero como es dinero y experiencia real del cliente, agregamos ademas
+    # esta correccion deterministica de respaldo: si se confirmo un pedido PARA_LLEVAR
+    # mientras el restaurante esta cerrado y el texto igual prometio un tiempo de entrega
+    # inmediato, lo corregimos antes de que llegue al cliente.
+    pedido_preview = extraer_pedido(txt)
+    if pedido_preview and pedido_preview.get("tipo") == "PARA_LLEVAR":
+        flags_actuales = _calcular_flags_horario(ahora_co())
+        if not flags_actuales["abierto_ahora"]:
+            for frase in ("20 a 30 minutos", "20-30 minutos", "20 y 30 minutos"):
+                if frase in txt:
+                    txt = txt.replace(
+                        frase,
+                        "listo para recoger a partir de las 12:00 PM (en este momento el restaurante esta cerrado)"
+                    )
+
     clean = limpiar_marcadores(txt)
     conversaciones[session_id].append({"role":"assistant","content":clean})
     if guardar_firestore:
@@ -644,26 +677,46 @@ def call_claude(session_id, mensaje, guardar_firestore=False):
 
     return txt
 
-def _formatear_resultado_disponibilidad(resultado):
+def _formatear_resultado_disponibilidad(resultado, fecha_reserva=None):
     """Convierte el resultado de consultar_disponibilidad en un mensaje de contexto
-    para que Claude lo use al responder al cliente (este texto nunca lo ve el cliente directamente)."""
+    para que Claude lo use al responder al cliente (este texto nunca lo ve el cliente directamente).
+
+    IMPORTANTE: aqui tambien calculamos en Python el dia de la semana EXACTO que corresponde
+    a la fecha de la reserva, y se lo entregamos ya resuelto al modelo en este mismo mensaje.
+    En pruebas se detecto que, aunque el CALENDARIO DE REFERENCIA del inicio del prompt tiene
+    el dato correcto y el modelo lo usa bien cuando se le pregunta directamente por un dia de
+    la semana, al redactar la frase de confirmacion de disponibilidad de una reserva a veces
+    recalculaba el dia por su cuenta y se equivocaba (ej. decir "viernes" para una fecha que en
+    realidad es "sabado"). Al reinyectar el dato correcto justo antes de la respuesta final,
+    evitamos que el modelo tenga que recalcularlo desde una tabla mas lejana en el prompt."""
+    dia_reserva_txt = ""
+    if fecha_reserva:
+        try:
+            d = datetime.strptime(fecha_reserva, "%d/%m/%Y")
+            dia_reserva_txt = (
+                f" La fecha {fecha_reserva} corresponde EXACTAMENTE a **{DIAS_SEMANA[d.weekday()]}** "
+                f"(dato ya verificado por el sistema en este mismo mensaje: usa esta palabra tal cual al "
+                f"mencionarle la fecha al cliente, nunca la recalcules ni la contradigas)."
+            )
+        except Exception:
+            pass
     if not resultado["ok"]:
         return ("[SISTEMA] No se pudo interpretar la fecha u hora indicada para verificar disponibilidad. "
                 "Pide al cliente que confirme la fecha (dd/mm/aaaa) y la hora exacta de la reserva.")
     if resultado["disponible"]:
         return (f"[SISTEMA] Hay disponibilidad para la reserva solicitada "
-                f"(franja: {resultado['franja']}, cupo restante: {resultado['cupo_restante']} personas). "
-                f"Continua el flujo de reserva con normalidad.")
+                f"(franja: {resultado['franja']}, cupo restante: {resultado['cupo_restante']} personas)."
+                f"{dia_reserva_txt} Continua el flujo de reserva con normalidad.")
     if resultado["alternativa"]:
         franja_alt = FRANJAS_LABELS.get(resultado["alternativa"], resultado["alternativa"])
         return (f"[SISTEMA] La franja solicitada ({resultado['franja']}) ya no tiene cupo suficiente "
-                f"para esa cantidad de personas. SI hay cupo disponible en la otra franja del mismo dia: {franja_alt}. "
-                f"Informa al cliente amablemente que el horario solicitado ya esta lleno, y ofrece la franja alternativa "
-                f"como opcion. No insistas en el horario original.")
+                f"para esa cantidad de personas. SI hay cupo disponible en la otra franja del mismo dia: {franja_alt}."
+                f"{dia_reserva_txt} Informa al cliente amablemente que el horario solicitado ya esta lleno, y ofrece "
+                f"la franja alternativa como opcion. No insistas en el horario original.")
     return (f"[SISTEMA] La franja solicitada ({resultado['franja']}) ya no tiene cupo, y la otra franja del mismo dia "
-            f"tampoco tiene espacio suficiente. Informa al cliente que no hay disponibilidad para esa fecha con esa "
-            f"cantidad de personas, y dale el contacto de la administradora (310 432 7103) para que coordine "
-            f"alternativas (otro dia, dividir el grupo, etc).")
+            f"tampoco tiene espacio suficiente.{dia_reserva_txt} Informa al cliente que no hay disponibilidad para esa "
+            f"fecha con esa cantidad de personas, y dale el contacto de la administradora (310 432 7103) para que "
+            f"coordine alternativas (otro dia, dividir el grupo, etc).")
 
 def build_resp(msg, txt):
     clean = limpiar_marcadores(txt)
