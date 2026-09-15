@@ -4,7 +4,7 @@ AGENTE RAICES - ANCESTRALES DEL PACIFICO GASTRO BAR
 Flask + Anthropic API + Google Sheets + WhatsApp + Web UI movil
 ================================================================
 """
-import os, json, requests, tempfile, base64
+import os, json, re, requests, tempfile, base64
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from flask import Flask, request, jsonify, render_template_string, send_from_directory
@@ -25,6 +25,19 @@ PALABRAS_NEQUI = ["nequi","transferencia","transferir","consignar","pagar","dato
 
 DIAS_SEMANA = {0:"lunes",1:"martes",2:"miercoles",3:"jueves",4:"viernes",5:"sabado",6:"domingo"}
 FRANJAS_LABELS = {k: v["label"] for k, v in firestore_db.FRANJAS.items()}
+
+# Detecta CUALQUIER redaccion que prometa un tiempo de entrega inmediato para un pedido
+# PARA LLEVAR (no solo la frase exacta "20 a 30 minutos"). Caso real que motivo esto:
+# el 14/09/2026 a las 10:45 PM (restaurante cerrado) el modelo confirmo un pedido y
+# prometio "en 30 minutos" -- una redaccion que el filtro anterior (basado en 3 frases
+# exactas) no detecto. Este patron cubre variantes como "20 a 30 minutos", "30 minutos",
+# "20-30 minutos", "45 minutos", asi como frases de inmediatez sin numero.
+RE_TIEMPO_INMEDIATO = re.compile(
+    r"\b\d{1,3}\s*(?:a|y|-)\s*\d{1,3}\s*minutos\b"   # "20 a 30 minutos", "20-30 minutos", "20 y 30 minutos"
+    r"|\b\d{1,3}\s*minutos\b"                          # "30 minutos"
+    r"|de inmediato|ya mismo|en un momento|muy pronto|en breve",
+    re.IGNORECASE,
+)
 
 SYSTEM_PROMPT_BASE = """Eres la asistente virtual de Raices Ancestrales del Pacifico Gastro Bar. Eres profesional, formal, cordial y atenta. Representas a un restaurante de alta cocina del Pacifico colombiano. Habla SIEMPRE en espanol, sin usar palabras en ingles.
 
@@ -291,12 +304,12 @@ VERIFICACION DE COMPROBANTES DE PAGO: Cuando el cliente envie una imagen de un c
 FLUJO PARA LLEVAR:
 0. ANTES DE TOMAR CUALQUIER PRODUCTO: consulta DIRECTAMENTE el valor "ESTADO ACTUAL DEL RESTAURANTE" del inicio del prompt. Este paso es OBLIGATORIO y va primero, incluso antes de tomar el nombre o el primer producto. Este chequeo NO es de una sola vez por conversacion: repitelo cada vez que el cliente confirme que quiere ordenar o pedir algo para llevar, sin importar si ya tienes su nombre, si ya le mostraste el menu antes, o en que turno de la conversacion ocurra — no asumas que como ya lo revisaste antes ya no hace falta repetirlo.
    - Si dice ABIERTO: continua con normalidad desde el paso 1.
-   - Si dice CERRADO: informa amablemente que en este momento no hay servicio, indica el horario (12:00 PM a 5:00 PM, ultimo pedido a las 5:00 PM), y ofrece dejar el pedido anotado desde ya para que quede listo apenas abra a las 12:00 PM. Si el cliente acepta, SI puedes tomar el pedido completo (productos, empaques, pago), pero en el paso 5 nunca digas "20 a 30 minutos": en su lugar informa que estara listo para recoger a partir de las 12:00 PM. Si el cliente prefiere no dejarlo anotado, ofrece que vuelva a escribir dentro del horario o que haga una reserva.
+   - Si dice CERRADO: informa amablemente que en este momento no hay servicio, indica el horario (12:00 PM a 5:00 PM, ultimo pedido a las 5:00 PM), y ofrece dejar el pedido anotado desde ya para que quede listo apenas abra a las 12:00 PM. Si el cliente acepta, SI puedes tomar el pedido completo (productos, empaques, pago), pero en el paso 5 NUNCA menciones ningun numero de minutos ni ninguna palabra de inmediatez (nada de "20 a 30 minutos", "30 minutos", "de inmediato", "ya mismo", "en un momento", ni ningun otro numero o frase que suene a "pronto"): en su lugar SIEMPRE di textualmente que estara listo para recoger "a partir de las 12:00 PM". Esta regla aplica sin excepcion, incluso si el pedido se confirma varios turnos despues de haber revisado el horario por primera vez: vuelve a verificar el horario justo antes de decir el tiempo de entrega, en cada turno. Si el cliente prefiere no dejarlo anotado, ofrece que vuelva a escribir dentro del horario o que haga una reserva.
 1. Saluda y pide nombre
 2. Toma el pedido (recuerda la ALERTA de ambiguedad "mixto"/"triple" si aplica: usa el valor "VENTANA EJECUTIVO PARA LLEVAR (ahora mismo, por dia Y hora)" para saber si puedes CONFIRMAR platos del ejecutivo; el menu ya se debio mostrar segun el dia, sin importar esta ventana)
 3. Confirma productos
 4. Calcula empaques: $1.000 por cada plato ordenado
-5. Informa el tiempo de entrega: "20 a 30 minutos" SOLO si "ESTADO ACTUAL DEL RESTAURANTE" dice ABIERTO (paso 0). Si dice CERRADO y el cliente acepto dejar el pedido listo para la apertura, informa en su lugar que estara listo para recoger a partir de las 12:00 PM.
+5. Informa el tiempo de entrega: vuelve a consultar "ESTADO ACTUAL DEL RESTAURANTE" en este mismo turno (no confies en lo que revisaste en un turno anterior). Di "20 a 30 minutos" UNICAMENTE si en este turno dice ABIERTO. Si dice CERRADO, esta PROHIBIDO mencionar cualquier numero de minutos o palabra de inmediatez ("30 minutos", "de inmediato", "ya mismo", etc): en su lugar di textualmente que estara listo para recoger "a partir de las 12:00 PM".
 6. Presenta resumen con total (productos + empaques)
 7. Pregunta metodo de pago (Nequi o al recoger)
 8. Si paga por Nequi: da datos y pide comprobante
@@ -649,24 +662,55 @@ def call_claude(session_id, mensaje, guardar_firestore=False):
         conversaciones[session_id].append({"role":"user","content":contexto})
         txt = _llamar_claude(session_id)
 
-    # RED DE SEGURIDAD: en pruebas se detecto que, al confirmar un pedido PARA LLEVAR del
-    # menu ejecutivo iniciado varios turnos despues de solo mostrar el menu, el modelo a
-    # veces ignora el chequeo de horario y promete "20 a 30 minutos" aunque el restaurante
-    # este cerrado (ESTADO ACTUAL DEL RESTAURANTE = CERRADO). El prompt ya se reforzo para
-    # evitar esto, pero como es dinero y experiencia real del cliente, agregamos ademas
-    # esta correccion deterministica de respaldo: si se confirmo un pedido PARA_LLEVAR
-    # mientras el restaurante esta cerrado y el texto igual prometio un tiempo de entrega
-    # inmediato, lo corregimos antes de que llegue al cliente.
+    # RED DE SEGURIDAD: en pruebas (y en produccion, caso real reportado el 14/09/2026 a
+    # las 10:45 PM) se detecto que, al confirmar un pedido PARA LLEVAR iniciado varios
+    # turnos despues de solo mostrar el menu, el modelo a veces ignora el chequeo de
+    # horario y promete un tiempo de entrega inmediato aunque el restaurante este cerrado
+    # (ESTADO ACTUAL DEL RESTAURANTE = CERRADO). Un primer intento de correccion buscaba
+    # 3 frases EXACTAS ("20 a 30 minutos", "20-30 minutos", "20 y 30 minutos") y las
+    # reemplazaba -- eso resulto fragil: en el caso real el modelo escribio "30 minutos"
+    # (sin el rango "20 a"), una redaccion que esas 3 frases no cubrian, y el cliente
+    # recibio la confirmacion incorrecta sin ninguna correccion.
+    #
+    # Esta version YA NO intenta adivinar ni reemplazar la redaccion exacta del modelo
+    # (imposible de cubrir al 100% con coincidencias de texto literal). En su lugar:
+    # 1) Detecta la promesa de tiempo inmediato con un patron amplio (RE_TIEMPO_INMEDIATO)
+    #    que cubre numeros de minutos en cualquier formato, ademas de frases de inmediatez.
+    # 2) Sin importar si la deteccion de arriba encuentra algo o no, SIEMPRE que se
+    #    confirme un pedido PARA_LLEVAR con el restaurante cerrado se agrega al final un
+    #    aviso claro y explicito con la informacion correcta (a menos que el modelo ya
+    #    haya sido correcto y esa informacion ya este en el texto). Esto garantiza que el
+    #    cliente reciba el dato correcto sin depender de detectar/borrar la frase exacta
+    #    que el modelo haya usado.
     pedido_preview = extraer_pedido(txt)
     if pedido_preview and pedido_preview.get("tipo") == "PARA_LLEVAR":
         flags_actuales = _calcular_flags_horario(ahora_co())
-        if not flags_actuales["abierto_ahora"]:
-            for frase in ("20 a 30 minutos", "20-30 minutos", "20 y 30 minutos"):
-                if frase in txt:
-                    txt = txt.replace(
-                        frase,
-                        "listo para recoger a partir de las 12:00 PM (en este momento el restaurante esta cerrado)"
-                    )
+        if not flags_actuales["abierto_ahora"] and "a partir de las 12:00 pm" not in txt.lower():
+            txt = txt + (
+                "\n\n⚠️ Aviso importante: en este momento el restaurante esta CERRADO "
+                "(horario de atencion: 12:00 PM a 5:00 PM, ultimo pedido a las 5:00 PM). "
+                "Su pedido queda anotado y estara listo para recoger a partir de las "
+                "12:00 PM, NO de inmediato."
+            )
+
+    # RED ADICIONAL: cubre el caso en que el modelo promete un tiempo inmediato en un
+    # turno intermedio del flujo PARA LLEVAR (ej. al informar el "tiempo de entrega" en
+    # el paso 5), ANTES de llegar al turno de confirmacion final con ##PEDIDO_CONFIRMADO##.
+    # Se excluyen mensajes de RESERVA (donde "X minutos despues de la hora de la reserva"
+    # es una frase valida y no tiene relacion con la hora actual) para no generar avisos
+    # innecesarios ahi.
+    if not pedido_preview or pedido_preview.get("tipo") != "PARA_LLEVAR":
+        flags_actuales = _calcular_flags_horario(ahora_co())
+        if (not flags_actuales["abierto_ahora"]
+                and RE_TIEMPO_INMEDIATO.search(txt)
+                and "reserva" not in txt.lower()
+                and "a partir de las 12:00 pm" not in txt.lower()
+                and ("pedido" in txt.lower() or "recoger" in txt.lower() or "llevar" in txt.lower())):
+            txt = txt + (
+                "\n\n⚠️ Aviso importante: en este momento el restaurante esta CERRADO "
+                "(horario de atencion: 12:00 PM a 5:00 PM, ultimo pedido a las 5:00 PM). "
+                "Su pedido para llevar quedara listo a partir de las 12:00 PM, NO de inmediato."
+            )
 
     clean = limpiar_marcadores(txt)
     conversaciones[session_id].append({"role":"assistant","content":clean})
