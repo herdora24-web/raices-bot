@@ -712,6 +712,23 @@ def call_claude(session_id, mensaje, guardar_firestore=False):
                 "Su pedido para llevar quedara listo a partir de las 12:00 PM, NO de inmediato."
             )
 
+    # RED ADICIONAL: en una prueba real (15/09/2026) se detecto que, al preguntar por el
+    # menu ejecutivo un sabado, el bot ofrecio directamente "dejar el pedido listo para
+    # recoger a partir de las 12:00 PM" SIN decir primero, de forma explicita, que en ese
+    # momento el restaurante estaba cerrado -- el cliente tuvo que preguntar "pero hoy
+    # todavia tiene servicio?" para que el bot lo aclarara. El dato final que dio el bot
+    # era correcto, pero el orden en que lo presento genero confusion innecesaria. Si el
+    # restaurante esta cerrado y el bot ya esta ofreciendo la alternativa de las 12:00 PM
+    # pero no dijo en ningun momento que esta cerrado, se le antepone una aclaracion breve.
+    flags_generales = _calcular_flags_horario(ahora_co())
+    if not flags_generales["abierto_ahora"] and "a partir de las 12:00 pm" in txt.lower():
+        ya_lo_dice = any(p in txt.lower() for p in ("cerrado", "no hay servicio", "aun no", "aún no"))
+        if not ya_lo_dice:
+            txt = (
+                "En este momento el restaurante esta cerrado (horario de atencion: "
+                "12:00 PM a 5:00 PM). "
+            ) + txt
+
     clean = limpiar_marcadores(txt)
     conversaciones[session_id].append({"role":"assistant","content":clean})
     if guardar_firestore:
